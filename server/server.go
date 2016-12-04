@@ -17,6 +17,7 @@ type Logger interface {
 
 type TokenValidator interface {
 	Validate(token string) (*token.Token, error)
+	IsClientError(error) bool
 }
 
 type Model interface {
@@ -32,7 +33,6 @@ type Server struct {
 
 const (
 	SomethingWickedError = "Something wicked happened"
-	InvalidTokenError = "Token was invalid"
 )
 
 var ErrorNilTokenValidator = errors.New("TokenValidator was nil")
@@ -55,35 +55,24 @@ func New(id string, m Model, tv TokenValidator, lg Logger) (*Server, error) {
 }
 
 func (s *Server) Hello(c context.Context, req *seed.HelloRequest, resp *seed.HelloResponse) error {
+	resp.Id = s.id
 	tID := <-s.tIDCh
 	s.log.Info("%d - Hello request", tID)
 	_, err := s.token.Validate(req.Token);
 	if err != nil {
-		s.packageTokenError(resp)
-		s.log.Info("%d - Token was invalid: %s", tID, err)
+		if s.token.IsClientError(err) {
+			resp.Code = http.StatusUnauthorized
+			resp.Detail = err.Error()
+			s.log.Info("%d - Token was invalid", tID)
+			return nil
+		}
+		resp.Code = http.StatusInternalServerError
+		resp.Detail = SomethingWickedError
+		s.log.Info("%d - Failed to validate user token: %s", tID, err)
 		return nil
 	}
-	greeting := "Hello " + req.Name
-	s.packageGreeting(http.StatusOK, greeting, resp)
+	resp.Code = http.StatusOK
+	resp.Greeting = "Hello " + req.Name
+	s.log.Info("%d - complete", tID)
 	return nil
-}
-
-func (s *Server) packageTokenError(resp *seed.HelloResponse) {
-	s.packageError(http.StatusUnauthorized, InvalidTokenError, resp)
-}
-
-func (s *Server) packageInternalError(resp *seed.HelloResponse) {
-	s.packageError(http.StatusInternalServerError, SomethingWickedError, resp)
-}
-
-func (s *Server) packageError(code int32, errStr string, resp *seed.HelloResponse) {
-	resp.Id = s.id
-	resp.Code = code
-	resp.Detail = errStr
-}
-
-func (s *Server) packageGreeting(code int32, greeting string, resp *seed.HelloResponse) {
-	resp.Id = s.id
-	resp.Code = code
-	resp.Greeting = greeting
 }

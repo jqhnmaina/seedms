@@ -1,4 +1,5 @@
-// TODO SEEDMS replace this proto file with own proto definitions
+// TODO SEEDMS replace this proto file with own proto definitions and
+// compile to replace the file seed.pb.go
 syntax = "proto3";
 
 service Seed {

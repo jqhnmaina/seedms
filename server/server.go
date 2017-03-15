@@ -3,6 +3,8 @@ package server
 import (
 	"errors"
 	"golang.org/x/net/context"
+	// TODO SEEDMS replace all references to github.com/tomogoma/seedms
+	// with new path
 	"github.com/tomogoma/seedms/server/proto"
 	"net/http"
 	"github.com/tomogoma/go-commons/auth/token"

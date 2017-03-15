@@ -6,6 +6,8 @@ import (
 	"github.com/tomogoma/seedms/server"
 	"github.com/limetext/log4go"
 	"golang.org/x/net/context"
+	// TODO SEEDMS replace all references to github.com/tomogoma/seedms
+	// with new path
 	"github.com/tomogoma/seedms/server/proto"
 	"net/http"
 	"fmt"

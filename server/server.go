@@ -25,7 +25,6 @@ type Model interface {
 
 type Server struct {
 	token TokenValidator
-	model Model
 	log   Logger
 	tIDCh chan int
 	id    string
@@ -36,22 +35,22 @@ const (
 )
 
 var ErrorNilTokenValidator = errors.New("TokenValidator was nil")
-var ErrorNilRiderModel = errors.New("Model was nil");
-var ErrorNilLogger = errors.New("Logger was nil");
+var ErrorNilLogger = errors.New("Logger was nil")
+var ErrorEmptyID = errors.New("ID was empty")
 
-func New(id string, m Model, tv TokenValidator, lg Logger) (*Server, error) {
-	if m == nil {
-		return nil, ErrorNilRiderModel
-	}
+func New(ID string, tv TokenValidator, lg Logger) (*Server, error) {
 	if tv == nil {
 		return nil, ErrorNilTokenValidator
 	}
 	if lg == nil {
 		return nil, ErrorNilLogger
 	}
+	if ID == "" {
+		return nil, ErrorEmptyID
+	}
 	tIDCh := make(chan int)
 	go helper.TransactionSerializer(tIDCh)
-	return &Server{id: id, model:m, token: tv, log:lg, tIDCh: tIDCh}, nil
+	return &Server{id: ID, token: tv, log:lg, tIDCh: tIDCh}, nil
 }
 
 func (s *Server) Hello(c context.Context, req *seed.HelloRequest, resp *seed.HelloResponse) error {
@@ -63,16 +62,14 @@ func (s *Server) Hello(c context.Context, req *seed.HelloRequest, resp *seed.Hel
 		if s.token.IsClientError(err) {
 			resp.Code = http.StatusUnauthorized
 			resp.Detail = err.Error()
-			s.log.Info("%d - Token was invalid", tID)
 			return nil
 		}
 		resp.Code = http.StatusInternalServerError
 		resp.Detail = SomethingWickedError
-		s.log.Info("%d - Failed to validate user token: %s", tID, err)
+		s.log.Error("%d - Failed to validate user token: %s", tID, err)
 		return nil
 	}
 	resp.Code = http.StatusOK
 	resp.Greeting = "Hello " + req.Name
-	s.log.Info("%d - complete", tID)
 	return nil
 }

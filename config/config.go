@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/tomogoma/go-commons/database/cockroach"
 	"github.com/tomogoma/go-commons/auth/token"
 	"time"
 )
@@ -11,7 +10,6 @@ type Service struct {
 }
 
 type Config struct {
-	Database cockroach.DSN `yaml:"database,omitempty"`
-	Token    token.DefaultConfig `yaml:"token,omitempty"`
-	Service  Service `yaml:"service,omitempty"`
+	Auth    token.DefaultConfig `yaml:"auth,omitempty"`
+	Service Service `yaml:"service,omitempty"`
 }

@@ -8,10 +8,12 @@ import (
 	// TODO SEEDMS fix imports after renaming project root folder
 	// (replace all "github.com/tomogoma/seedms" refs with new path)
 	"github.com/tomogoma/seedms/server"
-	"github.com/tomogoma/seedms/model"
-	"github.com/tomogoma/seedms/config"
 	"github.com/tomogoma/seedms/server/proto"
 	"github.com/tomogoma/go-commons/auth/token"
+	confhelper "github.com/tomogoma/go-commons/config"
+	"github.com/tomogoma/seedms/config"
+	"runtime"
+	"fmt"
 )
 
 const (
@@ -20,44 +22,55 @@ const (
 	name = "seedms"
 	version = "0.1.0"
 	confCommand = "conf"
-	defaultConfFile = "/etc/" + name + "/" + name + ".conf.yml"
+	defaultConfFile = "/etc/" + name + "/" + name + ".conf.yaml"
 )
+
+type Logger interface {
+	Fine(interface{}, ...interface{})
+	Info(interface{}, ...interface{})
+	Warn(interface{}, ...interface{}) error
+	Error(interface{}, ...interface{}) error
+}
 
 var confFilePath = flag.String(confCommand, defaultConfFile, "path to config file")
 
 func main() {
 	flag.Parse();
 	defer func() {
-		time.Sleep(600 * time.Millisecond)
+		runtime.Gosched()
+		time.Sleep(50 * time.Millisecond)
 	}()
+	conf := config.Config{}
 	log := log4go.NewDefaultLogger(log4go.FINEST)
-	conf, err := config.ReadFile(*confFilePath)
+	err := confhelper.ReadYamlConfig(*confFilePath, &conf)
 	if err != nil {
 		log.Critical("Error reading config file: %s", err)
 		return
 	}
-	m, err := model.New(conf.Database)
+	err = bootstrap(log, conf)
+	log.Critical(err)
+}
+
+// bootstrap collects all the dependencies necessary to start the server,
+// injects said dependencies, and proceeds to register it as a micro grpc handler.
+func bootstrap(log Logger, conf config.Config) error {
+	tv, err := token.NewGenerator(conf.Auth)
 	if err != nil {
-		log.Critical("Error instantiating the model: %s", err)
-		return
+		return fmt.Errorf("Error instantiating token validator: %s", err)
 	}
-	tv, err := token.NewGenerator(conf.Token)
+	srv, err := server.New(name, tv, log);
 	if err != nil {
-		log.Critical("Error instantiating token validator: %s", err)
-		return
-	}
-	srv, err := server.New(name, m, tv, log);
-	if err != nil {
-		log.Critical("Error instantiating server: %s", err)
-		return
+		return fmt.Errorf("Error instantiating server: %s", err)
 	}
 	service := micro.NewService(
 		micro.Name(name),
 		micro.Version(version),
 		micro.RegisterInterval(conf.Service.RegisterInterval),
 	)
+	// TODO SEEDMS modify this to match .proto file specification
 	seed.RegisterSeedHandler(service.Server(), srv)
 	if err := service.Run(); err != nil {
-		log.Critical("Error serving: %s", err)
+		return fmt.Errorf("Error serving: %s", err)
 	}
+	return nil
 }

@@ -5,7 +5,7 @@ NAME="seedms"
 APP_FILE="/usr/local/bin/${NAME}"
 UNIT_FILE="/etc/systemd/system/${NAME}.service"
 CONF_DIR="/etc/${NAME}"
-CONF_FILE="${CONF_DIR}/${NAME}.conf.yml"
+CONF_FILE="${CONF_DIR}/${NAME}.conf.yaml"
 
 echo "Begin uninstall"
 if [ -f "$UNIT_FILE" ]; then

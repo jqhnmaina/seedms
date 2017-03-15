@@ -23,5 +23,6 @@ auth:
   # tokenKeyFile defines the location of the file containing the token key.
   # - The file should only contain the token key and no special/extra characters.
   # - Typically, the file is a copy of the file used by the token generating
-  #   entity to generate tokens e.g. authms's tokenKeyFile.
+  #   entity to generate tokens e.g. https://github.com/tomogoma/authms 's
+  #   tokenKeyFile.
   tokenKeyFile: /etc/authms/ssh-keys/sha256.key

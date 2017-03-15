@@ -10,7 +10,6 @@ import (
 	// with new path
 	"github.com/tomogoma/seedms/server/proto"
 	"net/http"
-	"fmt"
 	"errors"
 	"reflect"
 )
@@ -126,7 +125,6 @@ func TestServer_Hello(t *testing.T) {
 			t.Fatalf("server.New(): %v", err)
 		}
 		resp := new(seed.HelloResponse)
-		fmt.Println(s)
 		err = s.Hello(context.TODO(), tc.Req, resp)
 		if err != nil {
 			t.Fatalf("%s - server.Hello(): %v", tc.Desc, err)

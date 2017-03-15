@@ -20,6 +20,7 @@ const (
 	// TODO SEEDMS change the name of the micro-service to a desired value
 	// (preferably the same as the NAME value in install/systemd-install.sh)
 	name = "seedms"
+	id = "go.micro.web." + name
 	version = "0.1.0"
 	confCommand = "conf"
 	defaultConfFile = "/etc/" + name + "/" + name + ".conf.yaml"
@@ -58,12 +59,12 @@ func bootstrap(log Logger, conf config.Config) error {
 	if err != nil {
 		return fmt.Errorf("Error instantiating token validator: %s", err)
 	}
-	srv, err := server.New(name, tv, log);
+	srv, err := server.New(id, tv, log);
 	if err != nil {
 		return fmt.Errorf("Error instantiating server: %s", err)
 	}
 	service := micro.NewService(
-		micro.Name(name),
+		micro.Name(id),
 		micro.Version(version),
 		micro.RegisterInterval(conf.Service.RegisterInterval),
 	)

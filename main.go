@@ -7,8 +7,8 @@ import (
 	"github.com/micro/go-micro"
 	// TODO SEEDMS fix imports after renaming project root folder
 	// (replace all "github.com/tomogoma/seedms" refs with new path)
-	"github.com/tomogoma/seedms/server"
-	"github.com/tomogoma/seedms/server/proto"
+	"github.com/tomogoma/seedms/handler"
+	"github.com/tomogoma/seedms/handler/proto"
 	"github.com/tomogoma/go-commons/auth/token"
 	confhelper "github.com/tomogoma/go-commons/config"
 	"github.com/tomogoma/seedms/config"
@@ -59,7 +59,7 @@ func bootstrap(log Logger, conf config.Config) error {
 	if err != nil {
 		return fmt.Errorf("Error instantiating token validator: %s", err)
 	}
-	srv, err := server.New(apiID, tv, log);
+	seedH, err := handler.NewSeed(apiID, tv, log);
 	if err != nil {
 		return fmt.Errorf("Error instantiating server: %s", err)
 	}
@@ -69,7 +69,7 @@ func bootstrap(log Logger, conf config.Config) error {
 		micro.RegisterInterval(conf.Service.RegisterInterval),
 	)
 	// TODO SEEDMS modify this to match .proto file specification
-	proto.RegisterSeedHandler(service.Server(), srv)
+	proto.RegisterSeedHandler(service.Server(), seedH)
 	if err := service.Run(); err != nil {
 		return fmt.Errorf("Error serving: %s", err)
 	}

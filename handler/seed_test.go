@@ -1,14 +1,14 @@
-package server_test
+package handler_test
 
 import (
 	"testing"
 	"github.com/tomogoma/go-commons/auth/token"
-	"github.com/tomogoma/seedms/server"
+	"github.com/tomogoma/seedms/handler"
 	"github.com/limetext/log4go"
 	"golang.org/x/net/context"
 	// TODO SEEDMS replace all references to github.com/tomogoma/seedms
 	// with new path
-	"github.com/tomogoma/seedms/server/proto"
+	"github.com/tomogoma/seedms/handler/proto"
 	"net/http"
 	"errors"
 	"reflect"
@@ -32,31 +32,31 @@ var srvID = "test_server"
 var logger = log4go.Logger{}
 
 func TestNew(t *testing.T) {
-	s, err := server.New(srvID, &TokenValidatorMock{}, logger)
+	s, err := handler.NewSeed(srvID, &TokenValidatorMock{}, logger)
 	if err != nil {
-		t.Fatalf("server.New(): %v", err)
+		t.Fatalf("server.NewSeed(): %v", err)
 	}
 	if s == nil {
-		t.Fatal("Got a nil Server")
+		t.Fatal("Got a nil Seed")
 	}
 }
 
 func TestNew_emptyID(t *testing.T) {
-	_, err := server.New("", &TokenValidatorMock{}, logger)
+	_, err := handler.NewSeed("", &TokenValidatorMock{}, logger)
 	if err == nil {
 		t.Fatal("Expected an error but got nil")
 	}
 }
 
 func TestNew_nilTokenValidator(t *testing.T) {
-	_, err := server.New(srvID, nil, logger)
+	_, err := handler.NewSeed(srvID, nil, logger)
 	if err == nil {
 		t.Fatal("Expected an error but got nil")
 	}
 }
 
 func TestNew_nilLogger(t *testing.T) {
-	_, err := server.New(srvID, &TokenValidatorMock{}, nil)
+	_, err := handler.NewSeed(srvID, &TokenValidatorMock{}, nil)
 	if err == nil {
 		t.Fatal("Expected an error but got nil")
 	}
@@ -113,16 +113,16 @@ func TestServer_Hello(t *testing.T) {
 				Name: "Test Bot",
 			},
 			ExpResp: &proto.HelloResponse{
-				Code: http.StatusInternalServerError,
-				Id: srvID,
-				Detail: server.SomethingWickedError,
+				Code:   http.StatusInternalServerError,
+				Id:     srvID,
+				Detail: handler.SomethingWickedError,
 			},
 		},
 	}
 	for _, tc := range tcs {
-		s, err := server.New(srvID, tc.TknVal, logger)
+		s, err := handler.NewSeed(srvID, tc.TknVal, logger)
 		if err != nil {
-			t.Fatalf("server.New(): %v", err)
+			t.Fatalf("server.NewSeed(): %v", err)
 		}
 		resp := new(proto.HelloResponse)
 		err = s.Hello(context.TODO(), tc.Req, resp)

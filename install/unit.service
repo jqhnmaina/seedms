@@ -1,0 +1,13 @@
+[Unit]
+# TODO SEEDMS change description to reflect the micro-service
+Description=Micro-Service Seed
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+# TODO SEEDMS change seedms to the NAME used in systemd-install.sh
+ExecStart=/usr/local/bin/seedms
+# TODO SEEDMS change seedms to the NAME used in systemd-install.sh
+SyslogIdentifier=seedms
+Restart=always

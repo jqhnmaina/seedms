@@ -2,6 +2,8 @@
 // compile to replace the file seed.pb.go
 syntax = "proto3";
 
+package proto;
+
 service Seed {
 	rpc Hello(HelloRequest) returns (HelloResponse) {}
 }

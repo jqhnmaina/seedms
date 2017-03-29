@@ -66,8 +66,8 @@ func TestServer_Hello(t *testing.T) {
 	type HelloTC struct {
 		Desc    string
 		TknVal  *TokenValidatorMock
-		Req     *seed.HelloRequest
-		ExpResp *seed.HelloResponse
+		Req     *proto.HelloRequest
+		ExpResp *proto.HelloResponse
 	}
 	tcs := []HelloTC{
 		{
@@ -76,11 +76,11 @@ func TestServer_Hello(t *testing.T) {
 				ExpErr: nil,
 				ExpClErr: false,
 			},
-			Req: &seed.HelloRequest{
+			Req: &proto.HelloRequest{
 				Token: "some.valid.token",
 				Name: "Test Bot",
 			},
-			ExpResp: &seed.HelloResponse{
+			ExpResp: &proto.HelloResponse{
 				Code: http.StatusOK,
 				Greeting: "Hello Test Bot",
 				Id: srvID,
@@ -92,11 +92,11 @@ func TestServer_Hello(t *testing.T) {
 				ExpErr: errors.New("Bad token!"),
 				ExpClErr: true,
 			},
-			Req: &seed.HelloRequest{
+			Req: &proto.HelloRequest{
 				Token: "some.invalid.token",
 				Name: "Test Bot",
 			},
-			ExpResp: &seed.HelloResponse{
+			ExpResp: &proto.HelloResponse{
 				Code: http.StatusUnauthorized,
 				Id: srvID,
 				Detail: "Bad token!",
@@ -108,11 +108,11 @@ func TestServer_Hello(t *testing.T) {
 				ExpErr: errors.New("Internal error"),
 				ExpClErr: false,
 			},
-			Req: &seed.HelloRequest{
+			Req: &proto.HelloRequest{
 				Token: "some.valid.token",
 				Name: "Test Bot",
 			},
-			ExpResp: &seed.HelloResponse{
+			ExpResp: &proto.HelloResponse{
 				Code: http.StatusInternalServerError,
 				Id: srvID,
 				Detail: server.SomethingWickedError,
@@ -124,7 +124,7 @@ func TestServer_Hello(t *testing.T) {
 		if err != nil {
 			t.Fatalf("server.New(): %v", err)
 		}
-		resp := new(seed.HelloResponse)
+		resp := new(proto.HelloResponse)
 		err = s.Hello(context.TODO(), tc.Req, resp)
 		if err != nil {
 			t.Fatalf("%s - server.Hello(): %v", tc.Desc, err)

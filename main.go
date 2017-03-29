@@ -69,7 +69,7 @@ func bootstrap(log Logger, conf config.Config) error {
 		micro.RegisterInterval(conf.Service.RegisterInterval),
 	)
 	// TODO SEEDMS modify this to match .proto file specification
-	seed.RegisterSeedHandler(service.Server(), srv)
+	proto.RegisterSeedHandler(service.Server(), srv)
 	if err := service.Run(); err != nil {
 		return fmt.Errorf("Error serving: %s", err)
 	}

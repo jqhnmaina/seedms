@@ -36,7 +36,7 @@ type Logger interface {
 var confFilePath = flag.String(confCommand, defaultConfFile, "path to config file")
 
 func main() {
-	flag.Parse();
+	flag.Parse()
 	defer func() {
 		runtime.Gosched()
 		time.Sleep(50 * time.Millisecond)

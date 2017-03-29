@@ -22,9 +22,6 @@ type TokenValidator interface {
 	IsClientError(error) bool
 }
 
-type Model interface {
-}
-
 type Server struct {
 	token TokenValidator
 	log   Logger

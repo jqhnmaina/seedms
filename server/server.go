@@ -52,7 +52,7 @@ func New(ID string, tv TokenValidator, lg Logger) (*Server, error) {
 	return &Server{id: ID, token: tv, log:lg, tIDCh: tIDCh}, nil
 }
 
-func (s *Server) Hello(c context.Context, req *seed.HelloRequest, resp *seed.HelloResponse) error {
+func (s *Server) Hello(c context.Context, req *proto.HelloRequest, resp *proto.HelloResponse) error {
 	resp.Id = s.id
 	tID := <-s.tIDCh
 	s.log.Info("%d - Hello request", tID)

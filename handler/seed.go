@@ -1,11 +1,11 @@
-package server
+package handler
 
 import (
 	"errors"
 	"golang.org/x/net/context"
 	// TODO SEEDMS replace all references to github.com/tomogoma/seedms
 	// with new path
-	"github.com/tomogoma/seedms/server/proto"
+	"github.com/tomogoma/seedms/handler/proto"
 	"net/http"
 	"github.com/tomogoma/go-commons/auth/token"
 	"github.com/tomogoma/go-commons/server/helper"
@@ -22,7 +22,7 @@ type TokenValidator interface {
 	IsClientError(error) bool
 }
 
-type Server struct {
+type Seed struct {
 	token TokenValidator
 	log   Logger
 	tIDCh chan int
@@ -37,7 +37,7 @@ var ErrorNilTokenValidator = errors.New("TokenValidator was nil")
 var ErrorNilLogger = errors.New("Logger was nil")
 var ErrorEmptyID = errors.New("ID was empty")
 
-func New(ID string, tv TokenValidator, lg Logger) (*Server, error) {
+func NewSeed(ID string, tv TokenValidator, lg Logger) (*Seed, error) {
 	if tv == nil {
 		return nil, ErrorNilTokenValidator
 	}
@@ -49,10 +49,10 @@ func New(ID string, tv TokenValidator, lg Logger) (*Server, error) {
 	}
 	tIDCh := make(chan int)
 	go helper.TransactionSerializer(tIDCh)
-	return &Server{id: ID, token: tv, log:lg, tIDCh: tIDCh}, nil
+	return &Seed{id: ID, token: tv, log: lg, tIDCh: tIDCh}, nil
 }
 
-func (s *Server) Hello(c context.Context, req *proto.HelloRequest, resp *proto.HelloResponse) error {
+func (s *Seed) Hello(c context.Context, req *proto.HelloRequest, resp *proto.HelloResponse) error {
 	resp.Id = s.id
 	tID := <-s.tIDCh
 	s.log.Info("%d - Hello request", tID)

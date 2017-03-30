@@ -25,3 +25,14 @@ auth:
   #   entity to generate tokens e.g. https://github.com/tomogoma/authms 's
   #   tokenKeyFile.
   tokenKeyFile: /etc/authms/ssh-keys/sha256.key
+
+# database configures access to the cockroach/postgres data stores
+database:
+  userName: root
+  password:
+  # the host:port or :port scheme for accessing the database server.
+  host: localhost:26257
+  dbName: ridersms
+  sslCert: /etc/cockroachdb/certs/node.cert
+  sslKey: /etc/cockroachdb/certs/node.key
+  sslRootCert: /etc/cockroachdb/certs/ca.cert

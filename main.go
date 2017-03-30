@@ -8,10 +8,10 @@ import (
 	// TODO SEEDMS fix imports after renaming project root folder
 	// (replace all "github.com/tomogoma/seedms" refs with new path)
 	"github.com/tomogoma/seedms/handler"
-	"github.com/tomogoma/seedms/handler/proto"
+	"github.com/tomogoma/seedms/proto"
+	"github.com/tomogoma/seedms/config"
 	"github.com/tomogoma/go-commons/auth/token"
 	confhelper "github.com/tomogoma/go-commons/config"
-	"github.com/tomogoma/seedms/config"
 	"runtime"
 	"fmt"
 )
@@ -55,7 +55,7 @@ func main() {
 // bootstrap collects all the dependencies necessary to start the server,
 // injects said dependencies, and proceeds to register it as a micro grpc handler.
 func bootstrap(log Logger, conf config.Config) error {
-	tv, err := token.NewGenerator(conf.Auth)
+	tv, err := token.NewJWTHandler(conf.Auth)
 	if err != nil {
 		return fmt.Errorf("Error instantiating token validator: %s", err)
 	}

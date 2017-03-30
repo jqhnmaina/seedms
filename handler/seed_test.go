@@ -2,30 +2,26 @@ package handler_test
 
 import (
 	"testing"
-	"github.com/tomogoma/go-commons/auth/token"
-	"github.com/tomogoma/seedms/handler"
 	"github.com/limetext/log4go"
 	"golang.org/x/net/context"
 	// TODO SEEDMS replace all references to github.com/tomogoma/seedms
 	// with new path
-	"github.com/tomogoma/seedms/handler/proto"
+	"github.com/tomogoma/seedms/handler"
+	"github.com/tomogoma/seedms/proto"
 	"net/http"
-	"errors"
 	"reflect"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/tomogoma/go-commons/errors"
 )
 
 type TokenValidatorMock struct {
-	ExpToken *token.Token
+	ExpToken *jwt.Token
 	ExpErr   error
-	ExpClErr bool
+	errors.AuthErrCheck
 }
 
-func (t *TokenValidatorMock) Validate(token string) (*token.Token, error) {
+func (t *TokenValidatorMock) Validate(token string, claims jwt.Claims) (*jwt.Token, error) {
 	return t.ExpToken, t.ExpErr
-}
-
-func (t *TokenValidatorMock) IsClientError(error) bool {
-	return t.ExpClErr
 }
 
 var srvID = "test_server"
@@ -74,31 +70,29 @@ func TestServer_Hello(t *testing.T) {
 			Desc: "Greeting success",
 			TknVal: &TokenValidatorMock{
 				ExpErr: nil,
-				ExpClErr: false,
 			},
 			Req: &proto.HelloRequest{
 				Token: "some.valid.token",
-				Name: "Test Bot",
+				Name:  "Test Bot",
 			},
 			ExpResp: &proto.HelloResponse{
-				Code: http.StatusOK,
+				Code:     http.StatusOK,
 				Greeting: "Hello Test Bot",
-				Id: srvID,
+				Id:       srvID,
 			},
 		},
 		{
 			Desc: "Invalid token reported",
 			TknVal: &TokenValidatorMock{
-				ExpErr: errors.New("Bad token!"),
-				ExpClErr: true,
+				ExpErr: errors.NewAuth("Bad token!"),
 			},
 			Req: &proto.HelloRequest{
 				Token: "some.invalid.token",
-				Name: "Test Bot",
+				Name:  "Test Bot",
 			},
 			ExpResp: &proto.HelloResponse{
-				Code: http.StatusUnauthorized,
-				Id: srvID,
+				Code:   http.StatusUnauthorized,
+				Id:     srvID,
 				Detail: "Bad token!",
 			},
 		},
@@ -106,11 +100,10 @@ func TestServer_Hello(t *testing.T) {
 			Desc: "Token validation error",
 			TknVal: &TokenValidatorMock{
 				ExpErr: errors.New("Internal error"),
-				ExpClErr: false,
 			},
 			Req: &proto.HelloRequest{
 				Token: "some.valid.token",
-				Name: "Test Bot",
+				Name:  "Test Bot",
 			},
 			ExpResp: &proto.HelloResponse{
 				Code:   http.StatusInternalServerError,

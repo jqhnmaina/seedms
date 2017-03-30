@@ -10,6 +10,6 @@ type Service struct {
 }
 
 type Config struct {
-	Auth    token.DefaultConfig `yaml:"auth,omitempty"`
+	Auth    token.ConfigStub `yaml:"auth,omitempty"`
 	Service Service `yaml:"service,omitempty"`
 }

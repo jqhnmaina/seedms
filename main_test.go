@@ -2,17 +2,17 @@ package main
 
 import (
 	"testing"
+	"time"
+	"flag"
 	// TODO SEEDMS change all references to github.com/tomogoma/seedms
 	// to the new import path
 	"github.com/tomogoma/seedms/config"
-	"flag"
 	confhelper "github.com/tomogoma/go-commons/config"
 	"github.com/limetext/log4go"
-	"time"
 )
 
 func init() {
-	flag.Parse();
+	flag.Parse()
 }
 
 func Test_bootstrap(t *testing.T) {

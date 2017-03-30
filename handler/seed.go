@@ -5,10 +5,11 @@ import (
 	"golang.org/x/net/context"
 	// TODO SEEDMS replace all references to github.com/tomogoma/seedms
 	// with new path
-	"github.com/tomogoma/seedms/handler/proto"
+	"github.com/tomogoma/seedms/token"
+	"github.com/tomogoma/seedms/proto"
 	"net/http"
-	"github.com/tomogoma/go-commons/auth/token"
 	"github.com/tomogoma/go-commons/server/helper"
+	"github.com/dgrijalva/jwt-go"
 )
 
 type Logger interface {
@@ -18,8 +19,8 @@ type Logger interface {
 }
 
 type TokenValidator interface {
-	Validate(token string) (*token.Token, error)
-	IsClientError(error) bool
+	Validate(token string, claims jwt.Claims) (*jwt.Token, error)
+	IsAuthError(error) bool
 }
 
 type Seed struct {
@@ -56,9 +57,9 @@ func (s *Seed) Hello(c context.Context, req *proto.HelloRequest, resp *proto.Hel
 	resp.Id = s.id
 	tID := <-s.tIDCh
 	s.log.Info("%d - Hello request", tID)
-	_, err := s.token.Validate(req.Token);
-	if err != nil {
-		if s.token.IsClientError(err) {
+	tkn := new(token.Token)
+	if _, err := s.token.Validate(req.Token, tkn); err != nil {
+		if s.token.IsAuthError(err) {
 			resp.Code = http.StatusUnauthorized
 			resp.Detail = err.Error()
 			return nil

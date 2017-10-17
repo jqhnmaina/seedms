@@ -1,23 +1,15 @@
 #!/usr/bin/env bash
 
-# TODO SEEDMS change seedms to be similar to value in systemd-install.sh
-NAME="seedms"
-APP_FILE="/usr/local/bin/${NAME}"
-UNIT_FILE="/etc/systemd/system/${NAME}.service"
-CONF_DIR="/etc/${NAME}"
-CONF_FILE="${CONF_DIR}/${NAME}.conf.yaml"
-EXIT_CODE_FAIL=1
+source vars.sh
 
-echo "Begin uninstall"
 if [ -f "$UNIT_FILE" ]; then
-	systemctl stop  "${NAME}.service" >/dev/null
-	rm -f "${UNIT_FILE}" || exit ${EXIT_CODE_FAIL}
+	systemctl stop  "${UNIT_NAME}" >/dev/null
+	rm -f "${UNIT_FILE}" || exit 1
     systemctl daemon-reload
 fi
-if [ -f "$APP_FILE" ]; then
-	rm -f "${APP_FILE}" || exit ${EXIT_CODE_FAIL}
+if [ -f "$INSTALL_FILE" ]; then
+	rm -f "${INSTALL_FILE}" || exit 1
 fi
 if [ -f "$CONF_FILE" ]; then
     echo "config file at '${CONF_FILE}' left intact intentionally"
 fi
-echo "Uninstall complete"

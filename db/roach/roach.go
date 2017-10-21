@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/cockroachdb/cockroach-go/crdb"
-	"github.com/tomogoma/seedms/config"
 	crdbH "github.com/tomogoma/crdb"
 	errors "github.com/tomogoma/go-typed-errors"
+	"github.com/tomogoma/seedms/config"
 )
 
 // Roach is a cockroach db store.
@@ -42,7 +42,7 @@ func NewRoach(opts ...Option) *Roach {
 	r := &Roach{
 		isDBInit:      false,
 		isDBInitMutex: sync.Mutex{},
-		dbName:        config.CanonicalName,
+		dbName:        config.CanonicalName(),
 	}
 	for _, f := range opts {
 		f(r)

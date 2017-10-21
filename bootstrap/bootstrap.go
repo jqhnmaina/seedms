@@ -8,9 +8,10 @@ import (
 	"github.com/tomogoma/seedms/config"
 	"github.com/tomogoma/seedms/db/roach"
 	"github.com/tomogoma/seedms/logging"
+	"github.com/tomogoma/crdb"
 )
 
-func InstantiateRoach(lg logging.Logger, conf config.Database) *roach.Roach {
+func InstantiateRoach(lg logging.Logger, conf crdb.Config) *roach.Roach {
 	var opts []roach.Option
 	if dsn := conf.FormatDSN(); dsn != "" {
 		opts = append(opts, roach.WithDSN(dsn))

@@ -1,10 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
 	"time"
 
+	"github.com/tomogoma/crdb"
 	"github.com/tomogoma/go-typed-errors"
 	"gopkg.in/yaml.v2"
 )
@@ -13,6 +13,7 @@ type Service struct {
 	RegisterInterval   time.Duration `json:"registerInterval,omitempty" yaml:"registerInterval"`
 	LoadBalanceVersion string        `json:"loadBalanceVersion,omitempty" yaml:"loadBalanceVersion"`
 	MasterAPIKey       string        `json:"masterAPIKey,omitempty" yaml:"masterAPIKey"`
+	AllowedOrigins     []string      `json:"allowedOrigins" yaml:"allowedOrigins"`
 }
 
 type Twilio struct {
@@ -54,43 +55,12 @@ type JWT struct {
 	TokenKeyFile string `json:"tokenKeyFile" yaml:"tokenKeyFile"`
 }
 
-type Database struct {
-	User           string `json:"user,omitempty" yaml:"user,omitempty"`
-	Password       string `json:"password,omitempty" yaml:"password,omitempty"`
-	Host           string `json:"host,omitempty" yaml:"host,omitempty"`
-	Port           string `json:"port,omitempty" yaml:"port,omitempty"`
-	DBName         string `json:"dbName,omitempty" yaml:"dbName,omitempty"`
-	ConnectTimeout int    `json:"connectTimeout,omitempty" yaml:"connectTimeout,omitempty"`
-	SSLMode        string `json:"sslMode,omitempty" yaml:"sslMode,omitempty"`
-	SSLCert        string `json:"sslCert,omitempty" yaml:"sslCert,omitempty"`
-	SSLKey         string `json:"sslKey,omitempty" yaml:"sslKey,omitempty"`
-	SSLRootCert    string `json:"sslRootCert,omitempty" yaml:"sslRootCert,omitempty"`
-}
-
-func (d Database) FormatDSN() string {
-	return fmt.Sprintf("user='%s' password='%s'"+
-		" host='%s' port='%s' dbname='%s'"+
-		" connect_timeout='%d'"+
-		" sslmode='%s' sslcert='%s' sslkey='%s' sslrootcert='%s'",
-		d.User,
-		d.Password,
-		d.Host,
-		d.Port,
-		d.DBName,
-		d.ConnectTimeout,
-		d.SSLMode,
-		d.SSLCert,
-		d.SSLKey,
-		d.SSLRootCert,
-	)
-}
-
 type General struct {
-	Service        Service  `json:"serviceConfig,omitempty" yaml:"serviceConfig"`
-	Database       Database `json:"database,omitempty" yaml:"database"`
-	Authentication Auth     `json:"authentication,omitempty" yaml:"authentication"`
-	Token          JWT      `json:"token,omitempty" yaml:"token"`
-	SMS            SMS      `json:"sms" yaml:"sms"`
+	Service        Service     `json:"serviceConfig,omitempty" yaml:"serviceConfig"`
+	Database       crdb.Config `json:"database,omitempty" yaml:"database"`
+	Authentication Auth        `json:"authentication,omitempty" yaml:"authentication"`
+	Token          JWT         `json:"token,omitempty" yaml:"token"`
+	SMS            SMS         `json:"sms" yaml:"sms"`
 }
 
 func ReadFile(fName string) (conf General, err error) {

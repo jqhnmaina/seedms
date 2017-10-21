@@ -7,20 +7,27 @@ import (
 	"testing"
 
 	errors "github.com/tomogoma/go-typed-errors"
-	"github.com/tomogoma/seedms/config"
 	"github.com/tomogoma/seedms/logging"
 	testingH "github.com/tomogoma/seedms/testing"
 )
 
 func TestNewHandler(t *testing.T) {
 	tt := []struct {
-		name   string
-		guard  Guard
-		logger logging.Logger
-		expErr bool
+		name           string
+		guard          Guard
+		logger         logging.Logger
+		allowedOrigins []string
+		expErr         bool
 	}{
 		{
-			name:   "valid deps",
+			name:           "valid deps",
+			guard:          &testingH.GuardMock{},
+			logger:         &testingH.LoggerMock{},
+			allowedOrigins: []string{"*"},
+			expErr:         false,
+		},
+		{
+			name:   "valid deps (nil origins)",
 			guard:  &testingH.GuardMock{},
 			logger: &testingH.LoggerMock{},
 			expErr: false,
@@ -40,7 +47,7 @@ func TestNewHandler(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			h, err := NewHandler(tc.guard, tc.logger)
+			h, err := NewHandler(tc.guard, tc.logger, "", tc.allowedOrigins)
 			if tc.expErr {
 				if err == nil {
 					t.Fatal("Expected an error but got nil")
@@ -60,6 +67,7 @@ func TestNewHandler(t *testing.T) {
 func TestHandler_handleRoute(t *testing.T) {
 	tt := []struct {
 		name          string
+		baseURL       string
 		reqURLSuffix  string
 		reqMethod     string
 		reqBody       string
@@ -73,14 +81,14 @@ func TestHandler_handleRoute(t *testing.T) {
 		{
 			name:          "status",
 			guard:         &testingH.GuardMock{},
-			reqURLSuffix:  "/" + config.Version + "/" + config.Name + "/status",
+			reqURLSuffix:  "/status",
 			reqMethod:     http.MethodGet,
 			expStatusCode: http.StatusOK,
 		},
 		{
 			name:          "status guard error",
 			guard:         &testingH.GuardMock{ExpAPIKValidErr: errors.Newf("guard error")},
-			reqURLSuffix:  "/" + config.Version + "/" + config.Name + "/status",
+			reqURLSuffix:  "/status",
 			reqMethod:     http.MethodGet,
 			expStatusCode: http.StatusInternalServerError,
 		},
@@ -89,7 +97,7 @@ func TestHandler_handleRoute(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			lg := &testingH.LoggerMock{}
-			h := newHandler(t, tc.guard, lg)
+			h := newHandler(t, tc.guard, lg, tc.baseURL, nil)
 			srvr := httptest.NewServer(h)
 			defer srvr.Close()
 
@@ -121,8 +129,8 @@ func TestHandler_handleRoute(t *testing.T) {
 	}
 }
 
-func newHandler(t *testing.T, g Guard, lg logging.Logger) http.Handler {
-	h, err := NewHandler(g, lg)
+func newHandler(t *testing.T, g Guard, lg logging.Logger, baseURL string, allowedOrigins []string) http.Handler {
+	h, err := NewHandler(g, lg, baseURL, allowedOrigins)
 	if err != nil {
 		t.Fatalf("http.NewHandler(): %v", err)
 	}

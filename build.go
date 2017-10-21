@@ -1,5 +1,4 @@
-//
-// // +build dev
+// +build dev
 
 // build.go automates proper versioning of authms binaries
 // and installer scripts.
@@ -15,6 +14,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -45,8 +45,8 @@ func main() {
 		flag.Usage()
 		os.Exit(0)
 	}
-	if err := build(goos, goarch, goarm); err != nil {
-		log.Fatalf("build error: %v", err)
+	if err := buildMicroservice(goos, goarch, goarm); err != nil {
+		log.Fatalf("buildMicroservice error: %v", err)
 	}
 	if err := installVars(); err != nil {
 		log.Fatalf("write installer script error: %v", err)
@@ -59,21 +59,26 @@ func main() {
 func installVars() error {
 	content := `#!/usr/bin/env bash
 NAME="` + config.Name + `"
-VERSION="` + config.Version + `"
+VERSION="` + config.VersionFull + `"
 DESCRIPTION="` + config.Description + `"
-CANONICAL_NAME="` + config.CanonicalName + `"
+CANONICAL_NAME="` + config.CanonicalName() + `"
 CONF_DIR="` + config.DefaultConfDir() + `"
 CONF_FILE="` + config.DefaultConfPath() + `"
 INSTALL_DIR="` + config.DefaultInstallDir() + `"
 INSTALL_FILE="` + config.DefaultInstallPath() + `"
-UNIT_NAME="` + config.DefaultSysDUnitName + `"
+UNIT_NAME="` + config.DefaultSysDUnitName() + `"
 UNIT_FILE="` + config.DefaultSysDUnitFilePath() + `"
+DOCS_DIR="` + config.DefaultDocsDir() + `"
 `
 	return ioutil.WriteFile("install/vars.sh", []byte(content), 0755)
 }
 
-func build(goos, goarch, goarm string) error {
-	args := []string{"build", "-o", "bin/app", "./cmd/microservice"}
+func buildMicroservice(goos, goarch, goarm string) error {
+	docsDir := path.Join("install", "docs", config.VersionMajorPrefixed(), config.Name, "docs")
+	if err := compileDocs(docsDir); err != nil {
+		return err
+	}
+	args := []string{"build", "-o", "bin/app", "./cmd/micro"}
 	cmd := exec.Command("go", args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
@@ -95,6 +100,11 @@ func buildGcloud() error {
 		return errors.Newf("create conf dir: %v", err)
 	}
 
+	docsDir := path.Join(config.DefaultDocsDir(), config.VersionMajorPrefixed(), config.Name, "docs")
+	if err := compileDocs(docsDir); err != nil {
+		return err
+	}
+
 	err := copyIfDestNotExists(path.Join("install", "conf.yml"), config.DefaultConfPath())
 	if err != nil {
 		return err
@@ -103,6 +113,50 @@ func buildGcloud() error {
 		return errors.Newf("clean gcloud config file: %v", err)
 	}
 
+	return nil
+}
+
+func compileDocs(docsDir string) error {
+
+	subjDir := path.Join("handler", "http")
+	headerFile := path.Join(subjDir, "apidoc_header.md")
+	APIDocConfFile := path.Join(subjDir, "apidoc.json")
+
+	apiDoc := struct {
+		Name        string      `json:"name"`
+		Version     string      `json:"version"`
+		Description string      `json:"description"`
+		Title       string      `json:"title"`
+		Header      interface{} `json:"header"`
+	}{
+		Name:        config.Name,
+		Version:     config.VersionFull,
+		Description: config.Description,
+		Title:       config.CanonicalName(),
+		Header: struct {
+			Title    string `json:"title"`
+			FileName string `json:"filename"`
+		}{
+			Title:    "Introduction",
+			FileName: headerFile,
+		},
+	}
+
+	apiDocB, err := json.Marshal(apiDoc)
+	if err != nil {
+		return errors.Newf("Marshal API doc config: %v", err)
+	}
+
+	err = ioutil.WriteFile(APIDocConfFile, apiDocB, 0655)
+	if err != nil {
+		return errors.Newf("Write API doc file: %v", err)
+	}
+
+	args := []string{"-i", subjDir, "-c", subjDir, "-o", docsDir}
+	cmd := exec.Command("apidoc", args...)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return errors.Newf("generate http docs: %v: %s", err, out)
+	}
 	return nil
 }
 

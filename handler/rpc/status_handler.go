@@ -64,8 +64,8 @@ func (sh *StatusHandler) Check(c context.Context, req *api.Request, resp *api.Re
 		return errors.Newf("Something wicked happened")
 	}
 	resp.Name = config.Name
-	resp.Version = config.Version
+	resp.Version = config.VersionFull
 	resp.Description = config.Description
-	resp.CanonicalName = config.CanonicalRPCName
+	resp.CanonicalName = config.CanonicalRPCName()
 	return nil
 }

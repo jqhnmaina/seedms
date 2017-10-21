@@ -3,10 +3,10 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	errors "github.com/tomogoma/go-typed-errors"
@@ -24,6 +24,7 @@ type handler struct {
 	errors.NotImplErrCheck
 	errors.AuthErrCheck
 	errors.ClErrCheck
+	errors.NotFoundErrCheck
 
 	guard  Guard
 	logger logging.Logger
@@ -38,7 +39,7 @@ const (
 	ctxKeyLog   = contextKey("log")
 )
 
-func NewHandler(g Guard, l logging.Logger) (http.Handler, error) {
+func NewHandler(g Guard, l logging.Logger, baseURL string, allowedOrigins []string) (http.Handler, error) {
 	if g == nil {
 		return nil, errors.New("Guard was nil")
 	}
@@ -46,10 +47,18 @@ func NewHandler(g Guard, l logging.Logger) (http.Handler, error) {
 		return nil, errors.New("Logger was nil")
 	}
 
-	r := mux.NewRouter().PathPrefix(config.WebRootURL).Subrouter()
+	r := mux.NewRouter().PathPrefix(baseURL).Subrouter()
 	handler{guard: g, logger: l}.handleRoute(r)
 
-	return r, nil
+	corsOpts := []handlers.CORSOption{
+		handlers.AllowedHeaders([]string{
+			"X-Requested-With", "Accept", "Content-Type", "Content-Length",
+			"Accept-Encoding", "X-CSRF-Token", "Authorization", "X-api-key",
+		}),
+		handlers.AllowedOrigins(allowedOrigins),
+		handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"}),
+	}
+	return handlers.CORS(corsOpts...)(r), nil
 }
 
 func (s handler) handleRoute(r *mux.Router) {
@@ -57,18 +66,41 @@ func (s handler) handleRoute(r *mux.Router) {
 	r.PathPrefix("/status").
 		Methods(http.MethodGet).
 		HandlerFunc(s.prepLogger(s.guardRoute(s.handleStatus)))
+
+	r.PathPrefix("/" + config.DocsPath).
+		Handler(http.FileServer(http.Dir(config.DefaultDocsDir())))
+
+	r.NotFoundHandler = http.HandlerFunc(s.prepLogger(s.notFoundHandler))
 }
 
+/**
+ * @api {get} /status Status
+ * @apiName Status
+ * @apiVersion 0.1.0
+ * @apiGroup Service
+ *
+ * @apiHeader x-api-key the api key
+ *
+ * @apiSuccess (200) {String} name Micro-service name.
+ * @apiSuccess (200)  {String} version http://semver.org version.
+ * @apiSuccess (200)  {String} description Short description of the micro-service.
+ * @apiSuccess (200)  {String} canonicalName Canonical name of the micro-service.
+ * @apiSuccess (200)  {String} needRegSuper true if a super-user has been registered, false otherwise.
+ *
+ */
 func (s handler) prepLogger(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := s.logger.WithField(logging.FieldTransID, uuid.New())
+
+		log := s.logger.WithHTTPRequest(r).
+			WithField(logging.FieldTransID, uuid.New())
+
 		log.WithFields(map[string]interface{}{
 			logging.FieldURL:            r.URL,
 			logging.FieldHost:           r.Host,
 			logging.FieldMethod:         r.Method,
 			logging.FieldRequestHandler: "HTTP",
-			logging.FieldHttpReqObj:     r,
 		}).Info("new request")
+
 		ctx := context.WithValue(r.Context(), ctxKeyLog, log)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
@@ -126,9 +158,9 @@ func (s *handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 		CanonicalName string `json:"canonicalName"`
 	}{
 		Name:          config.Name,
-		Version:       config.Version,
+		Version:       config.VersionFull,
 		Description:   config.Description,
-		CanonicalName: config.CanonicalWebName,
+		CanonicalName: config.CanonicalWebName(),
 	}, http.StatusOK, nil)
 }
 
@@ -148,6 +180,11 @@ func (s *handler) handleError(w http.ResponseWriter, r *http.Request, reqData in
 	}
 	if s.IsClientError(err) {
 		log.Warnf("Bad request: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if s.IsNotFoundError(err) {
+		log.Warnf("Not found: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -173,7 +210,6 @@ func (s *handler) respondOn(w http.ResponseWriter, r *http.Request, reqData inte
 		return 0
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
@@ -188,5 +224,5 @@ func (s *handler) respondOn(w http.ResponseWriter, r *http.Request, reqData inte
 }
 
 func (s handler) notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Nothing to see here")
+	http.Error(w, "Nothing to see here", http.StatusNotFound)
 }

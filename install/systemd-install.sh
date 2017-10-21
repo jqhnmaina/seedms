@@ -29,10 +29,12 @@ printDetails() {
     echo "conf dir:          $CONF_DIR"
     echo "conf file:         $CONF_FILE"
     echo "install file:      $INSTALL_FILE"
+    echo "docs dir:          $DOCS_DIR"
     echo "systemd unit file: $UNIT_FILE"
 }
 
 mkdir -p "${CONF_DIR}" || exit 1
+cp -rf docs "${DOCS_DIR}" || exit 1
 if [ ! -f "${CONF_FILE}" ]; then
     cp "conf.yml" "${CONF_FILE}" || exit 1
 fi

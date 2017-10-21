@@ -29,7 +29,8 @@ func main() {
 	go serveRPC(conf.Service, rpcSrv, serverRPCQuitCh)
 
 	serverHttpQuitCh := make(chan error)
-	httpHandler, err := http.NewHandler(APIGuard, log)
+	httpHandler, err := http.NewHandler(APIGuard, log, config.WebRootURL(),
+		conf.Service.AllowedOrigins)
 	logging.LogFatalOnError(log, err, "Instantiate HTTP handler")
 	go serveHttp(conf.Service, httpHandler, serverHttpQuitCh)
 
@@ -43,7 +44,7 @@ func main() {
 
 func serveRPC(conf config.Service, rpcSrv *rpc.StatusHandler, quitCh chan error) {
 	service := micro.NewService(
-		micro.Name(config.CanonicalRPCName),
+		micro.Name(config.CanonicalRPCName()),
 		micro.Version(conf.LoadBalanceVersion),
 		micro.RegisterInterval(conf.RegisterInterval),
 	)
@@ -55,7 +56,7 @@ func serveRPC(conf config.Service, rpcSrv *rpc.StatusHandler, quitCh chan error)
 func serveHttp(conf config.Service, h http2.Handler, quitCh chan error) {
 	srvc := web.NewService(
 		web.Handler(h),
-		web.Name(config.CanonicalWebName),
+		web.Name(config.CanonicalWebName()),
 		web.Version(conf.LoadBalanceVersion),
 		web.RegisterInterval(conf.RegisterInterval),
 	)

@@ -72,22 +72,6 @@ func (s handler) handleRoute(r *mux.Router) {
 
 	r.NotFoundHandler = http.HandlerFunc(s.prepLogger(s.notFoundHandler))
 }
-
-/**
- * @api {get} /status Status
- * @apiName Status
- * @apiVersion 0.1.0
- * @apiGroup Service
- *
- * @apiHeader x-api-key the api key
- *
- * @apiSuccess (200) {String} name Micro-service name.
- * @apiSuccess (200)  {String} version http://semver.org version.
- * @apiSuccess (200)  {String} description Short description of the micro-service.
- * @apiSuccess (200)  {String} canonicalName Canonical name of the micro-service.
- * @apiSuccess (200)  {String} needRegSuper true if a super-user has been registered, false otherwise.
- *
- */
 func (s handler) prepLogger(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -150,6 +134,20 @@ func (s *handler) unmarshalJSONOrRespondError(w http.ResponseWriter, r *http.Req
 	return true
 }
 
+/**
+ * @api {get} /status Status
+ * @apiName Status
+ * @apiVersion 0.1.0
+ * @apiGroup Service
+ *
+ * @apiHeader x-api-key the api key
+ *
+ * @apiSuccess (200) {String} name Micro-service name.
+ * @apiSuccess (200)  {String} version http://semver.org version.
+ * @apiSuccess (200)  {String} description Short description of the micro-service.
+ * @apiSuccess (200)  {String} canonicalName Canonical name of the micro-service.
+ *
+ */
 func (s *handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	s.respondOn(w, r, nil, struct {
 		Name          string `json:"name"`

@@ -48,13 +48,6 @@ define({ "api": [
             "optional": false,
             "field": "canonicalName",
             "description": "<p>Canonical name of the micro-service.</p>"
-          },
-          {
-            "group": "200",
-            "type": "String",
-            "optional": false,
-            "field": "needRegSuper",
-            "description": "<p>true if a super-user has been registered, false otherwise.</p>"
           }
         ]
       }

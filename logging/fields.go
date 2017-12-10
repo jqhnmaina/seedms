@@ -5,9 +5,10 @@ const (
 	FieldTransID         = "transactionID"
 	FieldURL             = "url"
 	FieldHost            = "host"
-	FieldMethod          = "method"
+	FieldHTTPMethod      = "HTTPmethod"
+	FieldRPCMethod       = "RPCmethod"
 	FieldRequest         = "request"
-	FieldService         = "service"
+	FieldURLPath         = "URLPath"
 	FieldRequestHandler  = "requestType"
 	FieldClientAppUserID = "ClientAppUserID"
 )

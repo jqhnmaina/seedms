@@ -2,14 +2,14 @@ package main
 
 import (
 	"flag"
-	http2 "net/http"
+	"net/http"
 
 	"github.com/micro/go-micro"
 	"github.com/micro/go-web"
 	"github.com/tomogoma/seedms/api"
 	"github.com/tomogoma/seedms/bootstrap"
 	"github.com/tomogoma/seedms/config"
-	"github.com/tomogoma/seedms/handler/http"
+	httpIntl "github.com/tomogoma/seedms/handler/http"
 	"github.com/tomogoma/seedms/handler/rpc"
 	"github.com/tomogoma/seedms/logging"
 	"github.com/tomogoma/seedms/logging/logrus"
@@ -21,18 +21,19 @@ func main() {
 	confFile := flag.String("conf", config.DefaultConfPath(), "location of config file")
 	flag.Parse()
 	log := &logrus.Wrapper{}
-	conf, APIGuard, _, _ := bootstrap.Instantiate(*confFile, log)
+	// TODO convert this to a struct
+	deps := bootstrap.Instantiate(*confFile, log)
 
 	serverRPCQuitCh := make(chan error)
-	rpcSrv, err := rpc.NewStatusHandler(APIGuard, log)
+	rpcSrv, err := rpc.NewStatusHandler(deps.Guard, log)
 	logging.LogFatalOnError(log, err, "Instantate RPC handler")
-	go serveRPC(conf.Service, rpcSrv, serverRPCQuitCh)
+	go serveRPC(deps.Config.Service, rpcSrv, serverRPCQuitCh)
 
 	serverHttpQuitCh := make(chan error)
-	httpHandler, err := http.NewHandler(APIGuard, log, config.WebRootURL(),
-		conf.Service.AllowedOrigins)
+	httpHandler, err := httpIntl.NewHandler(deps.Guard, log, config.WebRootPath(),
+		deps.Config.Service.AllowedOrigins)
 	logging.LogFatalOnError(log, err, "Instantiate HTTP handler")
-	go serveHttp(conf.Service, httpHandler, serverHttpQuitCh)
+	go serveHttp(deps.Config.Service, httpHandler, serverHttpQuitCh)
 
 	select {
 	case err = <-serverHttpQuitCh:
@@ -53,7 +54,7 @@ func serveRPC(conf config.Service, rpcSrv *rpc.StatusHandler, quitCh chan error)
 	quitCh <- err
 }
 
-func serveHttp(conf config.Service, h http2.Handler, quitCh chan error) {
+func serveHttp(conf config.Service, h http.Handler, quitCh chan error) {
 	srvc := web.NewService(
 		web.Handler(h),
 		web.Name(config.CanonicalWebName()),

@@ -11,6 +11,13 @@ import (
 	"github.com/tomogoma/crdb"
 )
 
+type Deps struct {
+	Config config.General
+	Guard  *api.Guard
+	Roach  *roach.Roach
+	JWTEr  *jwt.Handler
+}
+
 func InstantiateRoach(lg logging.Logger, conf crdb.Config) *roach.Roach {
 	var opts []roach.Option
 	if dsn := conf.FormatDSN(); dsn != "" {
@@ -33,16 +40,16 @@ func InstantiateJWTHandler(lg logging.Logger, tknKyF string) *jwt.Handler {
 	return jwter
 }
 
-func Instantiate(confFile string, lg logging.Logger) (config.General, *api.Guard, *roach.Roach, *jwt.Handler) {
+func Instantiate(confFile string, lg logging.Logger) Deps {
 
 	conf, err := config.ReadFile(confFile)
 	logging.LogFatalOnError(lg, err, "Read config file")
 
 	rdb := InstantiateRoach(lg, conf.Database)
-	tg := InstantiateJWTHandler(lg, conf.Token.TokenKeyFile)
+	tg := InstantiateJWTHandler(lg, conf.Service.AuthTokenKeyFile)
 
 	g, err := api.NewGuard(rdb, api.WithMasterKey(conf.Service.MasterAPIKey))
 	logging.LogFatalOnError(lg, err, "Instantate API access guard")
 
-	return conf, g, rdb, tg
+	return Deps{Config: conf, Guard: g, Roach: rdb, JWTEr: tg}
 }

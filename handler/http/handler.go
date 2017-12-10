@@ -10,8 +10,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	errors "github.com/tomogoma/go-typed-errors"
-	"github.com/tomogoma/seedms/config"
 	"github.com/tomogoma/seedms/logging"
+	"github.com/tomogoma/seedms/config"
+	"net/url"
 )
 
 type contextKey string
@@ -21,10 +22,7 @@ type Guard interface {
 }
 
 type handler struct {
-	errors.NotImplErrCheck
-	errors.AuthErrCheck
-	errors.ClErrCheck
-	errors.NotFoundErrCheck
+	errors.AllErrCheck
 
 	guard  Guard
 	logger logging.Logger
@@ -34,9 +32,14 @@ const (
 	internalErrorMessage = "whoops! Something wicked happened"
 
 	keyAPIKey = "x-api-key"
+	keyOffset          = "offset"
+	keyCount           = "count"
 
 	ctxtKeyBody = contextKey("id")
 	ctxKeyLog   = contextKey("log")
+
+	defaultOffset = "0"
+	defaultCount  = "10"
 )
 
 func NewHandler(g Guard, l logging.Logger, baseURL string, allowedOrigins []string) (http.Handler, error) {
@@ -61,6 +64,7 @@ func NewHandler(g Guard, l logging.Logger, baseURL string, allowedOrigins []stri
 	return handlers.CORS(corsOpts...)(r), nil
 }
 
+// TODO move middleware to own file
 func (s handler) handleRoute(r *mux.Router) {
 
 	r.PathPrefix("/status").
@@ -72,6 +76,11 @@ func (s handler) handleRoute(r *mux.Router) {
 
 	r.NotFoundHandler = http.HandlerFunc(s.prepLogger(s.notFoundHandler))
 }
+
+func (s *handler) midwareChain(next http.HandlerFunc) http.HandlerFunc {
+	return s.prepLogger(s.guardRoute(next))
+}
+
 func (s handler) prepLogger(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -79,10 +88,8 @@ func (s handler) prepLogger(next http.HandlerFunc) http.HandlerFunc {
 			WithField(logging.FieldTransID, uuid.New())
 
 		log.WithFields(map[string]interface{}{
-			logging.FieldURL:            r.URL,
-			logging.FieldHost:           r.Host,
-			logging.FieldMethod:         r.Method,
-			logging.FieldRequestHandler: "HTTP",
+			logging.FieldURLPath:        r.URL.Path,
+			logging.FieldHTTPMethod:         r.Method,
 		}).Info("new request")
 
 		ctx := context.WithValue(r.Context(), ctxKeyLog, log)
@@ -105,30 +112,20 @@ func (s *handler) guardRoute(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (s *handler) readReqBody(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-		dataB, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			err = errors.NewClientf("Failed to read request body: %v", err)
-			s.handleError(w, r, nil, err)
-			return
-		}
-		ctx := context.WithValue(r.Context(), ctxtKeyBody, dataB)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	}
-}
-
-// unmarshalJSONOrRespondError returns true if json is extracted from
-// data into req successfully, otherwise, it writes an error response into
-// w and returns false.
+// unmarshalBodyOrRespondError returns true if json is extracted from
+// request body, otherwise, it writes an error response into w and returns false.
 // The Context in r should contain a logging.Logger with key ctxKeyLog
 // for logging in case of error
-func (s *handler) unmarshalJSONOrRespondError(w http.ResponseWriter, r *http.Request, data []byte, req interface{}) bool {
-	err := json.Unmarshal(data, req)
+func (s *handler) unmarshalBodyOrRespondError(w http.ResponseWriter, r *http.Request, req interface{}) bool {
+	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		err = errors.NewClientf("failed to unmarshal JSON request from body: %v", err)
+		err = errors.NewClientf("unable to read request body: %v", err)
 		s.handleError(w, r, nil, err)
+		return false
+	}
+	if err = json.Unmarshal(data, req); err != nil {
+		err = errors.NewClientf("unable to unmarshal request body: %v", err)
+		s.handleError(w, r, string(data), err)
 		return false
 	}
 	return true
@@ -166,14 +163,14 @@ func (s *handler) handleError(w http.ResponseWriter, r *http.Request, reqData in
 	reqDataB, _ := json.Marshal(reqData)
 	log := r.Context().Value(ctxKeyLog).(logging.Logger).
 		WithField(logging.FieldRequest, string(reqDataB))
-	if s.IsAuthError(err) {
-		if s.IsForbiddenError(err) {
-			log.Warnf("Forbidden: %v", err)
-			http.Error(w, err.Error(), http.StatusForbidden)
-		} else {
-			log.Warnf("Unauthorized: %v", err)
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-		}
+	if s.IsUnauthorizedError(err) {
+		log.Warnf("Unauthorized: %v", err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if s.IsForbiddenError(err) || s.IsAuthError(err) {
+		log.Warnf("Forbidden: %v", err)
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 	if s.IsClientError(err) {
@@ -188,7 +185,14 @@ func (s *handler) handleError(w http.ResponseWriter, r *http.Request, reqData in
 	}
 	if s.IsNotImplementedError(err) {
 		log.Warnf("Not implemented entity: %v", err)
-		http.Error(w, err.Error(), http.StatusNotImplemented)
+		resp := struct {
+			Message string      `json:"message"`
+			ReqData interface{} `json:"reqData"`
+		}{
+			Message: "Not yet implemented",
+			ReqData: reqData,
+		}
+		s.respondOn(w, r, reqData, resp, http.StatusNotImplemented, nil)
 		return
 	}
 	log.Errorf("Internal error: %v", err)
@@ -224,3 +228,20 @@ func (s *handler) respondOn(w http.ResponseWriter, r *http.Request, reqData inte
 func (s handler) notFoundHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Nothing to see here", http.StatusNotFound)
 }
+
+func getOffset(q url.Values) string {
+	offset := q.Get(keyOffset)
+	if offset == "" {
+		offset = defaultOffset
+	}
+	return offset
+}
+
+func getCount(q url.Values) string {
+	count := q.Get(keyCount)
+	if count == "" {
+		count = defaultCount
+	}
+	return count
+}
+

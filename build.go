@@ -1,4 +1,4 @@
-// +build dev
+//// +build dev
 
 // build.go automates proper versioning of authms binaries
 // and installer scripts.
@@ -13,18 +13,19 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"flag"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"os"
-	"os/exec"
-	"path"
-
 	errors "github.com/tomogoma/go-typed-errors"
 	"github.com/tomogoma/seedms/config"
+	"flag"
+	"os"
+	"io/ioutil"
+	"path"
+	"os/exec"
+	"bytes"
+	"io"
+	"path/filepath"
+	"log"
+	"encoding/json"
+	"fmt"
 )
 
 func main() {
@@ -90,6 +91,7 @@ func buildMicroservice(goos, goarch, goarm string) error {
 	} {
 		cmd.Env = append(cmd.Env, env)
 	}
+	// TODO USE cmd.CombinedOutput()
 	return cmd.Run()
 }
 
@@ -188,16 +190,102 @@ func copyIfDestNotExists(from, dest string) error {
 	return copyFile(from, dest)
 }
 
-// copyFile copies the from file into dest file
-// NOTE: Will consume too much memory if from is a large file!
-func copyFile(from, dest string) error {
-	data, err := ioutil.ReadFile(from)
+// CopyFile copies the contents of the file named src to the file named
+// by dst. The file will be created if it does not already exist. If the
+// destination file exists, all it's contents will be replaced by the contents
+// of the source file. The file mode will be copied from the source and
+// the copied data is synced/flushed to stable storage.
+func copyFile(src, dst string) (err error) {
+	in, err := os.Open(src)
 	if err != nil {
-		return errors.Newf("read from-file: %v", err)
+		return errors.Newf("open src: %v", err)
 	}
-	err = ioutil.WriteFile(dest, data, 0644)
+	defer in.Close()
+
+	out, err := os.Create(dst)
 	if err != nil {
-		return errors.Newf("write dest-file: %v", err)
+		return errors.Newf("create dst file: %v", err)
 	}
-	return nil
+	defer func() {
+		if e := out.Close(); e != nil {
+			err = errors.Newf("%v ...close dst file: %v", err, e)
+		}
+	}()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return errors.Newf("copy contents: %v", err)
+	}
+
+	err = out.Sync()
+	if err != nil {
+		return errors.Newf("flush buffer after copy: %v", err)
+	}
+
+	si, err := os.Stat(src)
+	if err != nil {
+		return errors.Newf("stat src file: %v", err)
+	}
+	err = os.Chmod(dst, si.Mode())
+	if err != nil {
+		return errors.Newf("chmod dest to equal src perms: %v", err)
+	}
+
+	return
+}
+
+// CopyDir recursively copies a directory tree, attempting to preserve permissions.
+// Source directory must exist.
+// Any source content that already exists in destination will be ignored and skipped.
+// Symlinks are ignored and skipped.
+func copyDir(src string, dst string) (err error) {
+	src = filepath.Clean(src)
+	dst = filepath.Clean(dst)
+
+	si, err := os.Stat(src)
+	if err != nil {
+		return errors.Newf("stat source: %v", err)
+	}
+	if !si.IsDir() {
+		return errors.Newf("source is not a directory")
+	}
+
+	_, err = os.Stat(dst)
+	if err != nil && !os.IsNotExist(err) {
+		return errors.Newf("stat destination: %v", err)
+	}
+
+	err = os.MkdirAll(dst, si.Mode())
+	if err != nil {
+		return errors.Newf("mkdirall destination: %v", err)
+	}
+
+	entries, err := ioutil.ReadDir(src)
+	if err != nil {
+		return errors.Newf("read source: %v", err)
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			err = copyDir(srcPath, dstPath)
+			if err != nil {
+				return errors.Newf("copy child dir: %v", err)
+			}
+		} else {
+			// Skip symlinks.
+			if entry.Mode()&os.ModeSymlink != 0 {
+				continue
+			}
+
+			err = copyIfDestNotExists(srcPath, dstPath)
+			if err != nil {
+				return errors.Newf("copy child file: %v", err)
+			}
+		}
+	}
+
+	return
 }

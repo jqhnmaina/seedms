@@ -44,7 +44,7 @@ func WebNamePrefix() string {
 	return "go.micro.api." + VersionMajorPrefixed() + "."
 }
 
-func WebRootURL() string {
+func WebRootPath() string {
 	return "/" + VersionMajorPrefixed() + "/" + Name
 }
 

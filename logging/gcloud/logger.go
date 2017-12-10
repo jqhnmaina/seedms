@@ -109,7 +109,7 @@ func (lg *Logger) log(payload string, f logFunc) {
 
 	delete(lg.Fields, logging.FieldHost)
 	delete(lg.Fields, logging.FieldRequestHandler)
-	delete(lg.Fields, logging.FieldMethod)
+	delete(lg.Fields, logging.FieldHTTPMethod)
 	delete(lg.Fields, logging.FieldURL)
 	fields, _ := json.Marshal(lg.Fields)
 	val := fmt.Sprintf("%s %s\n", payload, fields)

@@ -149,11 +149,17 @@ func (r *Roach) setRunningVersionCurrent() error {
 
 func checkRowsAffected(r sql.Result, err error, expAffected int64) error {
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return errors.NewNotFound("none found")
+		}
 		return err
 	}
 	c, err := r.RowsAffected()
 	if err != nil {
 		return err
+	}
+	if c == 0 {
+		return errors.NewNotFound("none found for update")
 	}
 	if c != expAffected {
 		return errors.Newf("expected %d affected rows but got %d",

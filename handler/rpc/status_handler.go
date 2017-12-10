@@ -40,7 +40,7 @@ func NewStatusHandler(g Guard, l logging.Logger) (*StatusHandler, error) {
 func (sh StatusHandler) prepLogger(method string) logging.Logger {
 	log := sh.logger.WithField(logging.FieldTransID, uuid.New())
 	log.WithFields(map[string]interface{}{
-		logging.FieldMethod:         method,
+		logging.FieldRPCMethod:      method,
 		logging.FieldRequestHandler: "RPC",
 	}).Info("new request")
 	return log

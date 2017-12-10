@@ -1,3 +1,4 @@
+service: seedms
 runtime: go
 api_version: go1.8
 env: flex

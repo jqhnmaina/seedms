@@ -25,6 +25,12 @@ serviceConfig:
   # should be deleted once the system is set up
   masterAPIKey:
 
+  # authTokenKeyFile is the location of the file containing sha256 key that will
+  # be used to encrypt the JWT produced by this micro-service or decrypt
+  # the JWT by the prevailing authentication micro-service.
+  # The file should contain only the key and no new line characters.
+  authTokenKeyFile: /etc/seedms/keys/jwt_sha256.key
+
   # allowedOrigins is a list of entries provided for Access-Control-Allow-Origin header
   # It takes the formats:
   #
@@ -77,91 +83,3 @@ database:
   # sslrootcert - The location of the root certificate file. The file must
   # contain PEM encoded data.
   sslRootCert: /etc/cockroachdb/certs/ca.crt
-
-
-
-# authentication contains configuration values for authentication rules.
-authentication:
-
-
-  # facebook - configuration values for OAuth based authentication using facebook.
-  # The values can be found in the app's dashboard in https://developers.facebook.com/apps
-  facebook:
-
-    # facebookID is the App ID on the facebook app's dashboard.
-    # Leaving this blank, removes facebook OAuth support.
-    ID:
-
-    # facebookSecretFileLoc is the location of the file containing the facebook
-    # secret as is on the facebook app's dashboard.
-    # The file should contain only the key and no new line characters.
-    secretFilePath: /etc/seedms/keys/facebooksecret.key
-
-
-
-# token - configuration values for token generation
-token:
-
-  # tokenKeyFile is the location of the file containing sha256 key that will
-  # be used to encrypt the JWT produced by this micro-service.
-  # The file should contain only the key and no new line characters.
-  tokenKeyFile: /etc/seedms/keys/jwt_sha256.key
-
-
-
-# sms - configuration values for sending SMSes via an API.
-# The templates for different message types can be found in
-# the adjacent templates folder.
-sms:
-
-  # activeAPI is the API to use for sending SMSes.
-  # Only the activeAPI's configuration values are required, the rest can be ignored.
-  # The value can either be empty or one of (twilio, africasTalking, messageBird)
-  # the sms section is not necessary if this is left empty.
-  activeAPI:
-
-  # testNumber is the number to send a test SMS to during micro-service
-  # startup and while running tests.
-  testNumber:
-
-
-  # twilio - configuration values for using twilio as the activeAPI
-  # configuration values can be found in https://www.twilio.com/console
-  twilio:
-
-    # ID is the Account SID on the twilio dashboard
-    ID:
-
-    # senderPhone is the purchased/trial-period phone number to use for sending SMSes.
-    # https://www.twilio.com/console/phone-numbers
-    # The phone number must have SMS capability.
-    senderPhone:
-    # tokenKeyFile is the file containing the AUTH TOKEN found in twilio dashboard.
-    # The file should contain only the token and no new line characters.
-    tokenKeyFile: /etc/seedms/keys/twiliotoken.key
-
-
-  # africasTalking - configuration values for using africasTalking as the activeAPI
-  africasTalking:
-
-    # username is the africastalking.com username for the account to use.
-    username:
-
-    # apiKeyFile is the location of the Account API key which can be generated
-    # at https://account.africastalking.com/auth/api
-    # The file must contain only the api key and no new line characters.
-    apiKeyFile: /etc/seedms/keys/africastalkingapi.key
-
-
-  # messageBird - configuration values for using messageBird as the active API.
-  messageBird:
-
-    # accountName is the sender of the message. This can be a telephone number
-    # (including country code) or an alphanumeric string. In case of an
-    # alphanumeric string, the maximum length is 11 characters.
-    accountName:
-
-    # apiKeyFile is the location of the file containing the Message Bird
-    # API access key. This can be found/generated here:
-    # https://dashboard.messagebird.com/app/settings/developers/access
-    apiKeyFile: /etc/seedms/keys/messagebirdapi.key

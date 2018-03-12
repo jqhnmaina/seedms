@@ -6,14 +6,14 @@ import (
 
 	"github.com/micro/go-micro"
 	"github.com/micro/go-web"
-	"github.com/tomogoma/seedms/api"
-	"github.com/tomogoma/seedms/bootstrap"
-	"github.com/tomogoma/seedms/config"
-	httpIntl "github.com/tomogoma/seedms/handler/http"
-	"github.com/tomogoma/seedms/handler/rpc"
-	"github.com/tomogoma/seedms/logging"
-	"github.com/tomogoma/seedms/logging/logrus"
-	_ "github.com/tomogoma/seedms/logging/standard"
+	"github.com/tomogoma/seedms/pkg/api"
+	"github.com/tomogoma/seedms/pkg/bootstrap"
+	"github.com/tomogoma/seedms/pkg/config"
+	httpIntl "github.com/tomogoma/seedms/pkg/handler/http"
+	"github.com/tomogoma/seedms/pkg/handler/rpc"
+	"github.com/tomogoma/seedms/pkg/logging"
+	"github.com/tomogoma/seedms/pkg/logging/logrus"
+	_ "github.com/tomogoma/seedms/pkg/logging/standard"
 )
 
 func main() {
@@ -21,7 +21,6 @@ func main() {
 	confFile := flag.String("conf", config.DefaultConfPath(), "location of config file")
 	flag.Parse()
 	log := &logrus.Wrapper{}
-	// TODO convert this to a struct
 	deps := bootstrap.Instantiate(*confFile, log)
 
 	serverRPCQuitCh := make(chan error)

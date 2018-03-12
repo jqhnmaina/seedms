@@ -52,7 +52,7 @@ define({ "api": [
         ]
       }
     },
-    "filename": "handler/http/handler.go",
+    "filename": "pkg/handler/http/handler.go",
     "groupTitle": "Service"
   }
 ] });

@@ -23,7 +23,7 @@ import (
 	"path"
 
 	"github.com/tomogoma/go-typed-errors"
-	"github.com/tomogoma/seedms/config"
+	"github.com/tomogoma/seedms/pkg/config"
 	"github.com/tomogoma/seedms/pkg/fileutils"
 )
 
@@ -119,7 +119,7 @@ func buildGcloud() error {
 
 func compileDocs(docsDir string) error {
 
-	subjDir := path.Join("handler", "http")
+	subjDir := path.Join("pkg", "handler", "http")
 	headerFile := path.Join(subjDir, "apidoc_header.md")
 	APIDocConfFile := path.Join(subjDir, "apidoc.json")
 

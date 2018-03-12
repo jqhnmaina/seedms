@@ -3,11 +3,11 @@ package main
 import (
 	"net/http"
 
-	"github.com/tomogoma/seedms/bootstrap"
-	"github.com/tomogoma/seedms/config"
-	httpInternal "github.com/tomogoma/seedms/handler/http"
-	"github.com/tomogoma/seedms/logging"
-	"github.com/tomogoma/seedms/logging/logrus"
+	"github.com/tomogoma/seedms/pkg/bootstrap"
+	"github.com/tomogoma/seedms/pkg/config"
+	httpInternal "github.com/tomogoma/seedms/pkg/handler/http"
+	"github.com/tomogoma/seedms/pkg/logging"
+	"github.com/tomogoma/seedms/pkg/logging/logrus"
 	"google.golang.org/appengine"
 )
 

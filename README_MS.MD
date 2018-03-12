@@ -12,7 +12,7 @@ for storage and either:
 2. Google App Engine
 
 In this Readme you will come accross the variables `<name>` and `<version>`,
-both can be found in [config/consts.go](config/consts.go) where `<version>`
+both can be found in [config/consts.go](pkg/config/consts.go) where `<version>`
 is the Major version code as per http://semver.org
 
 e.g. 

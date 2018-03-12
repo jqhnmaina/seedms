@@ -1,53 +1,47 @@
-# Micro-Service
+# Seed Micro-Service
 
 ## Introduction
 
-Seed app for creating opinionated micro-services that use Cockroach/PostgresSQL
+This is a seed app for creating opinionated micro-services that use Cockroach/PostgresSQL
 for storage and either:
 1. the `micro api` for load balancing via the proxy handler
 
     or
 2. Google App Engine
 
-In this Readme you will come accross the variables `<name>` and `<version>`,
-both can be found in [config/consts.go](config/consts.go) where `<version>`
-is the Major version code as per http://semver.org
+The micro-services are created from the template defined in this package.
 
-e.g. 
-```
-	Name        = "seedms"
-	VersionFull = "0.1.2"
-```
-yields
+## Pre-requisites
 
-`<name>` => `seedms`
+To generate a template:
 
-`<version>` => `0`
+1. [Golang](https://golang.org/) installation
+2. `GOPATH` set. See https://github.com/golang/go/wiki/SettingGOPATH for details.
 
+To build the template, read the README.MD file of the generated project.
 
-## Installation/Deployment
+## Installation
 
-Refer to the respective readme files for instructions:
-
-1. [Using micro](MICRO.MD)
-2. [Deploy to Google AppEngine](cmd/gcloud/README.MD)
-
-## Manual build
-
-### Pre-requisites
-
-1. [Go](https://golang.org) 1.8+ is required for this.
-1. APIDoc installed and added to `PATH` variable: http://apidocjs.com
-
-### Build
-
-Run the build command from inside the root folder:
-```
-make build
+```bash
+go get -u github.com/tomogoma/seedms
 ```
 
-`make build` can also be supplied with `goos=[GOOS]` `goarch=[GOARCH]`
-`goarm=[GOARM]` values as per the documentation at https://golang.org/cmd/go (untested)
+## Generating a micro-service
 
-build uses the go toolchain to build binaries. It also generates API docs and
-configuration templates.
+Run the following commands
+(This assumes your GOPATH/bin is in your environment variable, otherwise replace
+`seedms` with `$GOPATH/bin/seedms` in the commands below):
+
+1. See usage of the seedms command
+    ```bash
+    seedms -help
+    ```
+2. Example command to generate template for a micro-service
+    name: `test_service`
+    description: `A demo service`
+    package: `github.com/tomogoma/my_test_service`
+    ```bash
+    seedms  -desc "A demo service" \
+       -dest "github.com/tomogoma/my_test_service" \
+       -name "test_service"
+    ```

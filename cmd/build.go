@@ -90,8 +90,10 @@ func buildMicroservice(goos, goarch, goarm string) error {
 	} {
 		cmd.Env = append(cmd.Env, env)
 	}
-	// TODO USE cmd.CombinedOutput()
-	return cmd.Run()
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return errors.Newf("build: %s - %v", out, err)
+	}
+	return nil
 }
 
 func buildGcloud() error {

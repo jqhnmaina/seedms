@@ -80,8 +80,6 @@ func buildMicroservice(goos, goarch, goarm string) error {
 	}
 	args := []string{"build", "-o", "bin/app", "./cmd/micro"}
 	cmd := exec.Command("go", args...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
 	cmd.Env = os.Environ()
 	for _, env := range []string{
 		"GOOS=" + goos,

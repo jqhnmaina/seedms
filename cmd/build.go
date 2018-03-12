@@ -1,15 +1,15 @@
 //// +build dev
 
-// build.go automates proper versioning of authms binaries
+// build.go automates proper versioning of seedms binaries
 // and installer scripts.
 // Use it like:   go run build.go
 // The result binary will be located in bin/app
 // You can customize the build with the -goos, -goarch, and
 // -goarm CLI options:   go run build.go -goos=windows
 //
-// This program is NOT required to build authms from source
+// This program is NOT required to build seedms from source
 // since it is go-gettable. (You can run plain `go build`
-// in this directory to get a binary).
+// in each of the cmd sub-directories to get a binary).
 package main
 
 import (

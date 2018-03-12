@@ -55,7 +55,6 @@ func NewHandler(g Guard, l logging.Logger, baseURL string, allowedOrigins []stri
 	return handlers.CORS(corsOpts...)(r), nil
 }
 
-// TODO move middleware to own file
 func (s handler) handleRoute(r *mux.Router) {
 
 	r.PathPrefix("/status").

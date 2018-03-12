@@ -11,7 +11,7 @@ import (
 const (
 	Name        = "seedms"
 	VersionFull = "0.1.0" // Use http://semver.org standards
-	Description = "Seed Micro-Service"
+	Description = "seedmsDescription"
 
 	RPCNamePrefix = ""
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 NAME="seedms"
 VERSION="0.1.0"
-DESCRIPTION="Seed Micro-Service"
+DESCRIPTION="seedmsDescription"
 CANONICAL_NAME="seedmsv0"
 CONF_DIR="/etc/seedms"
 CONF_FILE="/etc/seedms/seedmsv0.conf.yml"

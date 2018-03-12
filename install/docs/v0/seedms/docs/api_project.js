@@ -1,7 +1,7 @@
 define({
   "name": "seedms",
   "version": "0.1.0",
-  "description": "Seed Micro-Service",
+  "description": "seedmsDescription",
   "title": "seedmsv0",
   "header": {
     "title": "Introduction",
@@ -12,7 +12,7 @@ define({
   "apidoc": "0.3.0",
   "generator": {
     "name": "apidoc",
-    "time": "2017-12-10T13:49:12.239Z",
+    "time": "2018-03-12T08:06:52.167Z",
     "url": "http://apidocjs.com",
     "version": "0.17.6"
   }

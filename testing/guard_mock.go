@@ -6,7 +6,7 @@ import (
 )
 
 type GuardMock struct {
-	typederrs.AuthErrCheck
+	errors.AuthErrCheck
 
 	ExpAPIKValidUsrID string
 	ExpAPIKValidErr   error

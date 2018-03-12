@@ -31,7 +31,7 @@ func ReadFile(fName string) (conf General, err error) {
 		return
 	}
 	if err = yaml.Unmarshal(confD, &conf); err != nil {
-		err = typederrs.Newf("unmarshal conf file (%s) contents: %v",
+		err = errors.Newf("unmarshal conf file (%s) contents: %v",
 			fName, err)
 		return
 	}

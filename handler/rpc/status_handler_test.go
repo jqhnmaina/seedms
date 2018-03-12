@@ -72,19 +72,19 @@ func TestStatusHandler_Check(t *testing.T) {
 		},
 		{
 			name: "forbidden",
-			guard: &testH.GuardMock{ExpAPIKValidErr: typederrs.NewForbidden("guard")},
+			guard: &testH.GuardMock{ExpAPIKValidErr: errors.NewForbidden("guard")},
 			req: &api.Request{},
 			expErr: true,
 		},
 		{
 			name: "unauthorized",
-			guard: &testH.GuardMock{ExpAPIKValidErr: typederrs.NewUnauthorized("guard")},
+			guard: &testH.GuardMock{ExpAPIKValidErr: errors.NewUnauthorized("guard")},
 			req: &api.Request{},
 			expErr: true,
 		},
 		{
 			name: "internal error",
-			guard: &testH.GuardMock{ExpAPIKValidErr: typederrs.Newf("guard")},
+			guard: &testH.GuardMock{ExpAPIKValidErr: errors.Newf("guard")},
 			req: &api.Request{},
 			expErr: true,
 		},

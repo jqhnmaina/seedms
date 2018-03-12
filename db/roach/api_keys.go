@@ -42,7 +42,7 @@ func (r *Roach) APIKeyByUserIDVal(userID string, key []byte) (apiG.Key, error) {
 		Scan(&k.ID, &k.UserID, &k.Val, &k.Created, &k.LastUpdated)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, typederrs.NewNotFound("API key not found")
+			return nil, errors.NewNotFound("API key not found")
 		}
 		return nil, err
 	}

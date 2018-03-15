@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/handlers"
@@ -64,7 +63,39 @@ func (s handler) handleRoute(r *mux.Router) {
 	r.PathPrefix("/" + config.DocsPath).
 		Handler(http.FileServer(http.Dir(config.DefaultDocsDir())))
 
-	r.NotFoundHandler = http.HandlerFunc(s.prepLogger(s.notFoundHandler))
+	r.NotFoundHandler = http.HandlerFunc(s.prepLogger(s.handleNotFound))
+}
+
+/**
+ * @api {get} /status Status
+ * @apiName Status
+ * @apiVersion 0.1.0
+ * @apiGroup Service
+ *
+ * @apiHeader x-api-key the api key
+ *
+ * @apiSuccess (200) {String} name Micro-service name.
+ * @apiSuccess (200)  {String} version http://semver.org version.
+ * @apiSuccess (200)  {String} description Short description of the micro-service.
+ * @apiSuccess (200)  {String} canonicalName Canonical name of the micro-service.
+ *
+ */
+func (s *handler) handleStatus(w http.ResponseWriter, r *http.Request) {
+	s.respondJsonOn(w, r, nil, struct {
+		Name          string `json:"name"`
+		Version       string `json:"version"`
+		Description   string `json:"description"`
+		CanonicalName string `json:"canonicalName"`
+	}{
+		Name:          config.Name,
+		Version:       config.VersionFull,
+		Description:   config.Description,
+		CanonicalName: config.CanonicalWebName(),
+	}, http.StatusOK, nil, s)
+}
+
+func (s handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Nothing to see here", http.StatusNotFound)
 }
 
 func (s *handler) midwareChain(next http.HandlerFunc) http.HandlerFunc {
@@ -95,86 +126,27 @@ func (s *handler) guardRoute(next http.HandlerFunc) http.HandlerFunc {
 			WithField(logging.FieldClientAppUserID, clUsrID)
 		ctx := context.WithValue(r.Context(), ctxKeyLog, log)
 		if err != nil {
-			s.handleError(w, r.WithContext(ctx), nil, err)
+			handleError(w, r.WithContext(ctx), nil, err, s)
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
 
-// unmarshalBodyOrRespondError returns true if json is extracted from
-// request body, otherwise, it writes an error response into w and returns false.
-// The Context in r should contain a logging.Logger with key ctxKeyLog
-// for logging in case of error
-func (s *handler) unmarshalBodyOrRespondError(w http.ResponseWriter, r *http.Request, req interface{}) bool {
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		err = errors.NewClientf("unable to read request body: %v", err)
-		s.handleError(w, r, nil, err)
-		return false
-	}
-	if err = json.Unmarshal(data, req); err != nil {
-		err = errors.NewClientf("unable to unmarshal request body: %v", err)
-		s.handleError(w, r, string(data), err)
-		return false
-	}
-	return true
-}
-
-/**
- * @api {get} /status Status
- * @apiName Status
- * @apiVersion 0.1.0
- * @apiGroup Service
- *
- * @apiHeader x-api-key the api key
- *
- * @apiSuccess (200) {String} name Micro-service name.
- * @apiSuccess (200)  {String} version http://semver.org version.
- * @apiSuccess (200)  {String} description Short description of the micro-service.
- * @apiSuccess (200)  {String} canonicalName Canonical name of the micro-service.
- *
- */
-func (s *handler) handleStatus(w http.ResponseWriter, r *http.Request) {
-	s.respondOn(w, r, nil, struct {
-		Name          string `json:"name"`
-		Version       string `json:"version"`
-		Description   string `json:"description"`
-		CanonicalName string `json:"canonicalName"`
-	}{
-		Name:          config.Name,
-		Version:       config.VersionFull,
-		Description:   config.Description,
-		CanonicalName: config.CanonicalWebName(),
-	}, http.StatusOK, nil)
-}
-
-func (s *handler) handleError(w http.ResponseWriter, r *http.Request, reqData interface{}, err error) {
-	reqDataB, _ := json.Marshal(reqData)
-	log := r.Context().Value(ctxKeyLog).(logging.Logger).
-		WithField(logging.FieldRequest, string(reqDataB))
-
-	if code, ok := s.ToHTTPResponse(err, w); ok {
-		log.WithField(logging.FieldResponseCode, code).Warn(err)
-		return
-	}
-
-	log.WithField(logging.FieldResponseCode, http.StatusInternalServerError).
-		Error(err)
-	http.Error(w, "Something wicked happened, please try again later",
-		http.StatusInternalServerError)
-}
-
-func (s *handler) respondOn(w http.ResponseWriter, r *http.Request, reqData interface{}, respData interface{}, code int, err error) int {
+// respondJsonOn marshals respData to json and writes it and the code as the
+// http header to w. If err is not nil, handleError is called instead of the
+// documented write to w.
+func (s *handler) respondJsonOn(w http.ResponseWriter, r *http.Request, reqData interface{},
+	respData interface{}, code int, err error, errSrc errors.ToHTTPResponser) int {
 
 	if err != nil {
-		s.handleError(w, r, reqData, err)
+		handleError(w, r, reqData, err, errSrc)
 		return 0
 	}
 
 	respBytes, err := json.Marshal(respData)
 	if err != nil {
-		s.handleError(w, r, reqData, err)
+		handleError(w, r, reqData, err, errSrc)
 		return 0
 	}
 
@@ -191,6 +163,21 @@ func (s *handler) respondOn(w http.ResponseWriter, r *http.Request, reqData inte
 	return i
 }
 
-func (s handler) notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Nothing to see here", http.StatusNotFound)
+// handleError writes an error to w using errSrc's logic and logs the error
+// using the logger acquired by the prepLogger middleware on r. reqData is
+// included in the log data.
+func handleError(w http.ResponseWriter, r *http.Request, reqData interface{}, err error, errSrc errors.ToHTTPResponser) {
+	reqDataB, _ := json.Marshal(reqData)
+	log := r.Context().Value(ctxKeyLog).(logging.Logger).
+		WithField(logging.FieldRequest, string(reqDataB))
+
+	if code, ok := errSrc.ToHTTPResponse(err, w); ok {
+		log.WithField(logging.FieldResponseCode, code).Warn(err)
+		return
+	}
+
+	log.WithField(logging.FieldResponseCode, http.StatusInternalServerError).
+		Error(err)
+	http.Error(w, "Something wicked happened, please try again later",
+		http.StatusInternalServerError)
 }

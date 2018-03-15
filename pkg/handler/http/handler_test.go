@@ -75,9 +75,6 @@ func TestHandler_handleRoute(t *testing.T) {
 		expStatusCode int
 		guard         Guard
 	}{
-		// values starting and ending with "_" are place holders for variables
-		// e.g. _loginType_ is a place holder for "any (valid) login type"
-
 		{
 			name:          "status",
 			guard:         &testingH.Guard{},
@@ -91,6 +88,13 @@ func TestHandler_handleRoute(t *testing.T) {
 			reqURLSuffix:  "/status",
 			reqMethod:     http.MethodGet,
 			expStatusCode: http.StatusInternalServerError,
+		},
+		{
+			name:          "not found",
+			guard:         &testingH.Guard{},
+			reqURLSuffix:  "/none_existent",
+			reqMethod:     http.MethodGet,
+			expStatusCode: http.StatusNotFound,
 		},
 	}
 	for _, tc := range tt {

@@ -58,7 +58,7 @@ func (s handler) handleRoute(r *mux.Router) {
 
 	r.PathPrefix("/status").
 		Methods(http.MethodGet).
-		HandlerFunc(s.prepLogger(s.guardRoute(s.handleStatus)))
+		HandlerFunc(s.midwareChain(s.handleStatus))
 
 	r.PathPrefix("/" + config.DocsPath).
 		Handler(http.FileServer(http.Dir(config.DefaultDocsDir())))

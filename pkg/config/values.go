@@ -17,9 +17,6 @@ type Service struct {
 	AuthTokenKeyFile   string        `json:"authTokenKeyFile" yaml:"authTokenKeyFile"`
 }
 
-type Auth struct {
-}
-
 type General struct {
 	Service  Service     `json:"serviceConfig,omitempty" yaml:"serviceConfig"`
 	Database crdb.Config `json:"database,omitempty" yaml:"database"`

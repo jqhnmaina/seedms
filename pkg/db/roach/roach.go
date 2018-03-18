@@ -90,8 +90,9 @@ func (r *Roach) instantiate() error {
 			if err != r.compatibilityErr {
 				return fmt.Errorf("check db version: %v", err)
 			}
-			if err := migrate(runningVersion, Version); err != nil {
-				return fmt.Errorf("migrate: %v", err)
+			if err := r.migrate(runningVersion, Version); err != nil {
+				return fmt.Errorf("migrate from version %d to %d: %v",
+					runningVersion, Version, err)
 			}
 		}
 		if err := r.setRunningVersionCurrent(); err != nil {
@@ -136,7 +137,11 @@ func (r *Roach) setRunningVersionCurrent() error {
 			ON CONFLICT (` + ColKey + `)
 			DO UPDATE SET (` + updCols + `) = ($2, CURRENT_TIMESTAMP)`
 	res, err := r.db.Exec(q, keyDBVersion, valB)
-	return checkRowsAffected(res, err, 1)
+	if err := checkRowsAffected(res, err, 1); err != nil {
+		return err
+	}
+	r.compatibilityErr = nil
+	return nil
 }
 
 func checkRowsAffected(r sql.Result, err error, expAffected int64) error {

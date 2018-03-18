@@ -55,15 +55,9 @@ func NewHandler(g Guard, l logging.Logger, baseURL string, allowedOrigins []stri
 }
 
 func (s handler) handleRoute(r *mux.Router) {
-
-	r.PathPrefix("/status").
-		Methods(http.MethodGet).
-		HandlerFunc(s.midwareChain(s.handleStatus))
-
-	r.PathPrefix("/" + config.DocsPath).
-		Handler(http.FileServer(http.Dir(config.DefaultDocsDir())))
-
-	r.NotFoundHandler = http.HandlerFunc(s.prepLogger(s.handleNotFound))
+	s.handleStatus(r)
+	s.handleDocs(r)
+	s.handleNotFound(r)
 }
 
 /**
@@ -80,25 +74,49 @@ func (s handler) handleRoute(r *mux.Router) {
  * @apiSuccess (200)  {String} canonicalName Canonical name of the micro-service.
  *
  */
-func (s *handler) handleStatus(w http.ResponseWriter, r *http.Request) {
-	s.respondJsonOn(w, r, nil, struct {
-		Name          string `json:"name"`
-		Version       string `json:"version"`
-		Description   string `json:"description"`
-		CanonicalName string `json:"canonicalName"`
-	}{
-		Name:          config.Name,
-		Version:       config.VersionFull,
-		Description:   config.Description,
-		CanonicalName: config.CanonicalWebName(),
-	}, http.StatusOK, nil, s)
+func (s *handler) handleStatus(r *mux.Router) {
+	r.Methods(http.MethodGet).
+		PathPrefix("/status").
+		HandlerFunc(
+		s.apiGuardChain(func(w http.ResponseWriter, r *http.Request) {
+			s.respondJsonOn(w, r, nil, struct {
+				Name          string `json:"name"`
+				Version       string `json:"version"`
+				Description   string `json:"description"`
+				CanonicalName string `json:"canonicalName"`
+			}{
+				Name:          config.Name,
+				Version:       config.VersionFull,
+				Description:   config.Description,
+				CanonicalName: config.CanonicalWebName(),
+			}, http.StatusOK, nil, s)
+		}),
+	)
 }
 
-func (s handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Nothing to see here", http.StatusNotFound)
+/**
+ * @api {get} /docs Docs
+ * @apiName Docs
+ * @apiVersion 0.1.0
+ * @apiGroup Service
+ *
+ * @apiSuccess (200) {html} docs Docs page to be viewed on browser.
+ *
+ */
+func (s *handler) handleDocs(r *mux.Router) {
+	r.PathPrefix("/" + config.DocsPath).
+		Handler(http.FileServer(http.Dir(config.DefaultDocsDir())))
 }
 
-func (s *handler) midwareChain(next http.HandlerFunc) http.HandlerFunc {
+func (s handler) handleNotFound(r *mux.Router) {
+	r.NotFoundHandler = http.HandlerFunc(
+		s.prepLogger(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "Nothing to see here", http.StatusNotFound)
+		}),
+	)
+}
+
+func (s *handler) apiGuardChain(next http.HandlerFunc) http.HandlerFunc {
 	return s.prepLogger(s.guardRoute(next))
 }
 

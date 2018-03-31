@@ -85,6 +85,9 @@ func (r *Roach) instantiate() error {
 	if r.isDBInit {
 		return nil
 	}
+	if err := crdbH.InstantiateDB(r.db, r.dbName, AllTableDescs...); err != nil {
+		return errors.Newf("instantiating db: %v", err)
+	}
 	if runningVersion, err := r.validateRunningVersion(); err != nil {
 		if !r.IsNotFoundError(err) {
 			if err != r.compatibilityErr {

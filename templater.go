@@ -36,7 +36,7 @@ var (
 	dest = flag.String(
 		flagDest,
 		"",
-		"The micro-service's package location relative to $GOPATH",
+		"The micro-service's package location relative to $GOPATH/src e.g. github.com/tomogoma/seedms",
 	)
 
 	nameRe = regexp.MustCompile("^[a-zA-Z_][a-zA-Z_0-9]*$")

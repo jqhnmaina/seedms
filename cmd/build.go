@@ -74,7 +74,7 @@ DOCS_DIR="` + config.DefaultDocsDir() + `"
 }
 
 func buildMicroservice(goos, goarch, goarm string) error {
-	docsDir := path.Join("install", "docs", config.VersionMajorPrefixed(), config.Name, "docs")
+	docsDir := path.Join("install", "docs", config.VersionMajorPrefixed(config.VersionFull, ""), config.Name, "docs")
 	if err := compileDocs(docsDir); err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func buildGcloud() error {
 		return errors.Newf("create conf dir: %v", err)
 	}
 
-	docsDir := path.Join(config.DefaultDocsDir(), config.VersionMajorPrefixed(), config.Name, "docs")
+	docsDir := path.Join(config.DefaultDocsDir(), config.VersionMajorPrefixed(config.VersionFull, ""), config.Name, "docs")
 	if err := compileDocs(docsDir); err != nil {
 		return err
 	}

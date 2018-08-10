@@ -1,7 +1,5 @@
 package roach
 
-const TimeFormat = ""
-
 // Option allows extra configuration for instantiating Roach. Use the With...
 // functions to set options e.g.
 //     nameOpt := WithDBName("my_app_db")

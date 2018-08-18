@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"io/ioutil"
+	"bytes"
 
 	"github.com/tomogoma/go-typed-errors"
 	"github.com/tomogoma/seedms/pkg/fileutils"
@@ -132,9 +133,6 @@ func validateFlags(dest, name, desc string) error {
 
 func refactorNames(destFolder, destPkg, msName, msDesc string) error {
 
-	escapedSeedmsPkg := escape(seedmsPkg, "/", "\\")
-	escapedDestPkg := escape(destPkg, "/", "\\")
-
 	return filepath.Walk(destFolder, func(fName string, info os.FileInfo, err error) error {
 
 		if err != nil {
@@ -144,25 +142,19 @@ func refactorNames(destFolder, destPkg, msName, msDesc string) error {
 			return nil
 		}
 
-		rplcPKGCmd := fmt.Sprintf("s/%s/%s/g", escapedSeedmsPkg, escapedDestPkg)
-		cmd := exec.Command("sed", "-i", rplcPKGCmd, fName)
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("replace package name in %s: %s: %v",
-				fName, out, err)
+		if err := replaceInFile(fName, seedmsPkg, destPkg); err != nil {
+			return fmt.Errorf("replace package name in %s: %v",
+				fName, err)
 		}
 
-		rplcDescCmd := fmt.Sprintf("s/%s/%s/g", seedmsDescription, msDesc)
-		cmd = exec.Command("sed", "-i", rplcDescCmd, fName)
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("replace micro-service description in %s: %s: %v",
-				fName, out, err)
+		if err := replaceInFile(fName, seedmsDescription, msDesc); err != nil {
+			return fmt.Errorf("replace micro-service description in %s: %v",
+				fName, err)
 		}
 
-		rplcNameCmd := fmt.Sprintf("s/%s/%s/g", seedms, msName)
-		cmd = exec.Command("sed", "-i", rplcNameCmd, fName)
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("replace micro-service name in %s: %s: %v",
-				fName, out, err)
+		if err := replaceInFile(fName, seedms, msName); err != nil {
+			return fmt.Errorf("replace micro-service name in %s: %v",
+				fName, err)
 		}
 
 		return nil
@@ -178,19 +170,6 @@ func in(s string, checks ...string) bool {
 	return false
 }
 
-func escape(s string, val string, escChar string) string {
-	parts := strings.Split(s, val)
-	var rslt string
-	newVal := fmt.Sprintf("%s%s", escChar, val)
-	for _, part := range parts {
-		rslt = fmt.Sprintf("%s%s%s", rslt, part, newVal)
-	}
-	if !strings.HasSuffix(s, val) {
-		rslt = strings.TrimSuffix(rslt, newVal)
-	}
-	return rslt
-}
-
 func handleError(err error) {
 	if err == nil {
 		return
@@ -204,4 +183,29 @@ func warnOnError(err error) {
 		return
 	}
 	log.Print(err)
+}
+
+func replaceInFile(fileName, old, new string) error {
+
+	fInfo, err := os.Stat(fileName)
+	if err != nil {
+		return errors.Newf("stat original file: %v", err)
+	}
+
+	fContent, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return errors.Newf("read original file: %v", err)
+	}
+
+	if len(bytes.TrimSpace(fContent)) == 0 {
+		return nil
+	}
+
+	newFContent := bytes.Replace(fContent, []byte(old), []byte(new), -1)
+
+	if err := ioutil.WriteFile(fileName, newFContent, fInfo.Mode()); err != nil {
+		return errors.Newf("write replace content to file: %v", err)
+	}
+
+	return nil
 }

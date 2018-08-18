@@ -14,6 +14,7 @@ import (
 
 	"github.com/tomogoma/go-typed-errors"
 	"github.com/tomogoma/seedms/pkg/fileutils"
+	"os/exec"
 )
 
 const (
@@ -81,6 +82,12 @@ func main() {
 
 	sourceFolder := path.Join(srcDir, seedmsPkg)
 
+	cmd := exec.Command("go", "get", "./...")
+	cmd.Dir = sourceFolder
+	if out, err := cmd.CombinedOutput(); err != nil {
+		handleError(fmt.Errorf("unable to import project dependencies: %v: %s", err, out))
+	}
+
 	if err := fileutils.CopyDir(sourceFolder, destFolder); err != nil {
 		handleError(fmt.Errorf("unable to copy template files: %v", err))
 	}
@@ -92,7 +99,7 @@ func main() {
 	msReadMeFile := path.Join(destFolder, "README_MS.MD")
 	resReadMeFile := path.Join(destFolder, "README.MD")
 	if err := fileutils.CopyFile(msReadMeFile, resReadMeFile); err != nil {
-		warnOnError(fmt.Errorf("unabl to set readme file: manually move"+
+		warnOnError(fmt.Errorf("unable to set readme file: manually move"+
 			" %s to %s: %v", msReadMeFile, resReadMeFile, err))
 	}
 	if err := os.Remove(msReadMeFile); err != nil {
@@ -139,6 +146,9 @@ func refactorNames(destFolder, destPkg, msName, msDesc string) error {
 			return errors.Newf("error walking through %s: %v", fName, err)
 		}
 		if info.IsDir() {
+			return nil
+		}
+		if strings.Contains(fName, string(filepath.Separator)+".git"+string(filepath.Separator)) {
 			return nil
 		}
 

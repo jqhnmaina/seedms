@@ -18,7 +18,7 @@ func main() {
 	deps := bootstrap.Instantiate(config.DefaultConfPath(), log)
 
 	httpHandler, err := httpInternal.NewHandler(deps.Guard, log, config.WebRootPath(),
-		deps.Config.Service.AllowedOrigins)
+		deps.Config.Service.DocsDir, deps.Config.Service.AllowedOrigins)
 	logging.LogFatalOnError(log, err, "Instantiate http Handler")
 
 	http.Handle("/", httpHandler)

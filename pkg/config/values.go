@@ -15,6 +15,7 @@ type Service struct {
 	MasterAPIKey       string        `json:"masterAPIKey,omitempty" yaml:"masterAPIKey"`
 	AllowedOrigins     []string      `json:"allowedOrigins" yaml:"allowedOrigins"`
 	AuthTokenKeyFile   string        `json:"authTokenKeyFile" yaml:"authTokenKeyFile"`
+	DocsDir            string        `json:"docsDir" yaml:"docsDir"`
 }
 
 type General struct {

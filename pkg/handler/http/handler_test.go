@@ -47,7 +47,7 @@ func TestNewHandler(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			h, err := NewHandler(tc.guard, tc.logger, "", tc.allowedOrigins)
+			h, err := NewHandler(tc.guard, tc.logger, "", "", tc.allowedOrigins)
 			if tc.expErr {
 				if err == nil {
 					t.Fatal("Expected an error but got nil")
@@ -134,7 +134,7 @@ func TestHandler_handleRoute(t *testing.T) {
 }
 
 func newHandler(t *testing.T, g Guard, lg logging.Logger, baseURL string, allowedOrigins []string) http.Handler {
-	h, err := NewHandler(g, lg, baseURL, allowedOrigins)
+	h, err := NewHandler(g, lg, baseURL, "", allowedOrigins)
 	if err != nil {
 		t.Fatalf("http.NewHandler(): %v", err)
 	}

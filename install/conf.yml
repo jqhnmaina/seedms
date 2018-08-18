@@ -46,6 +46,11 @@ serviceConfig:
   # "null" or "" or left empty
   allowedOrigins:
 
+  # docsDir contains path to documentation directory, useful if the service has not
+  # been installed in the system using any of the installers.
+  docsDir:
+
+
 
 
 # database contains configuration values for accessing CockroachDB as the

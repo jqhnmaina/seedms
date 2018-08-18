@@ -22,8 +22,9 @@ type Guard interface {
 type handler struct {
 	errors.ErrToHTTP
 
-	guard  Guard
-	logger logging.Logger
+	guard   Guard
+	logger  logging.Logger
+	docsDir string
 }
 
 const (
@@ -32,16 +33,19 @@ const (
 	ctxKeyLog = contextKey("log")
 )
 
-func NewHandler(g Guard, l logging.Logger, baseURL string, allowedOrigins []string) (http.Handler, error) {
+func NewHandler(g Guard, l logging.Logger, baseURL, docsDir string, allowedOrigins []string) (http.Handler, error) {
 	if g == nil {
 		return nil, errors.New("Guard was nil")
 	}
 	if l == nil {
 		return nil, errors.New("Logger was nil")
 	}
+	if len(docsDir) == 0 {
+		docsDir = config.DefaultDocsDir()
+	}
 
 	r := mux.NewRouter().PathPrefix(baseURL).Subrouter()
-	handler{guard: g, logger: l}.handleRoute(r)
+	handler{guard: g, logger: l, docsDir: docsDir}.handleRoute(r)
 
 	corsOpts := []handlers.CORSOption{
 		handlers.AllowedHeaders([]string{
@@ -105,7 +109,7 @@ func (s *handler) handleStatus(r *mux.Router) {
  */
 func (s *handler) handleDocs(r *mux.Router) {
 	r.PathPrefix("/" + config.DocsPath).
-		Handler(http.FileServer(http.Dir(config.DefaultDocsDir())))
+		Handler(http.FileServer(http.Dir(s.docsDir)))
 }
 
 func (s handler) handleNotFound(r *mux.Router) {

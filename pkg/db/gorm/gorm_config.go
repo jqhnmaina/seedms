@@ -14,7 +14,7 @@ func WithDSN(dsn string) Option {
 
 // WithDBName sets the name of the cockroach database to be used by Roach.
 func WithDBName(db string) Option {
-	return func(r *Gorm) {
-		r.dbName = db
+	return func(g *Gorm) {
+		g.dbName = db
 	}
 }

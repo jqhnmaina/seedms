@@ -1,7 +1,9 @@
 package roach
 
 import (
-	"database/sql"
+	"fmt"
+	"strconv"
+	"time"
 
 	apiG "github.com/tomogoma/go-api-guard"
 	"github.com/tomogoma/go-typed-errors"
@@ -14,16 +16,17 @@ func (r *Roach) InsertAPIKey(userID string, key []byte) (apiG.Key, error) {
 		return nil, err
 	}
 	k := api.Key{UserID: userID, Val: key}
-	insCols := ColDesc(ColUserID, ColKey, ColUpdateDate)
-	retCols := ColDesc(ColID, ColCreateDate, ColUpdateDate)
-	q := `
-		INSERT INTO ` + TblAPIKeys + ` (` + insCols + `)
-			VALUES ($1, $2, CURRENT_TIMESTAMP)
-			RETURNING ` + retCols
-	err := r.db.QueryRow(q, userID, key).Scan(&k.ID, &k.Created, &k.LastUpdated)
+	intUserId, err := strconv.Atoi(userID)
 	if err != nil {
 		return nil, err
 	}
+
+	var apiKey ApiKey
+	gormErr := r.db.FirstOrCreate(&apiKey, ApiKey{UserId: intUserId, Key: string(key), UpdatedAt: time.Now()})
+	if gormErr.Error != nil {
+		return nil, gormErr.Error
+	}
+	k.LastUpdated = apiKey.UpdatedAt
 	return k, nil
 }
 
@@ -32,19 +35,21 @@ func (r *Roach) APIKeyByUserIDVal(userID string, key []byte) (apiG.Key, error) {
 	if err := r.InitDBIfNot(); err != nil {
 		return nil, err
 	}
-	cols := ColDesc(ColID, ColUserID, ColKey, ColCreateDate, ColUpdateDate)
-	q := `
-	SELECT ` + cols + `
-		FROM ` + TblAPIKeys + `
-		WHERE ` + ColUserID + `=$1 AND ` + ColKey + `=$2`
-	k := api.Key{}
-	err := r.db.QueryRow(q, userID, key).
-		Scan(&k.ID, &k.UserID, &k.Val, &k.Created, &k.LastUpdated)
-	if err != nil {
-		if err == sql.ErrNoRows {
+	var apiKey ApiKey
+	err := r.db.Where(ColUserID+" = ?", userID).Where(ColKey+" = ?", key).First(&apiKey)
+	if err.Error != nil {
+		if err.RecordNotFound() {
 			return nil, errors.NewNotFound("API key not found")
 		}
-		return nil, err
+		return nil, err.Error
+	}
+
+	k := api.Key{
+		ID:          fmt.Sprint(apiKey.ID),
+		UserID:      strconv.Itoa(apiKey.UserId),
+		Val:         []byte(apiKey.Key),
+		Created:     apiKey.CreatedAt,
+		LastUpdated: apiKey.UpdatedAt,
 	}
 	return k, nil
 }

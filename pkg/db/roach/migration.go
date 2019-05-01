@@ -3,13 +3,12 @@ package roach
 import (
 	"errors"
 	"fmt"
-	"github.com/tomogoma/crdb"
 )
 
 func (r *Roach) migrate(fromVersion, toVersion int) error {
 
 	var err error
-	r.db, err = crdb.TryConnect(r.dsn, r.db)
+	r.db, err = r.TryConnect()
 	if err != nil {
 		return fmt.Errorf("connect to db: %v", err)
 	}

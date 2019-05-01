@@ -1,15 +1,15 @@
 package roach
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/jinzhu/gorm"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
-	"github.com/cockroachdb/cockroach-go/crdb"
-	crdbH "github.com/tomogoma/crdb"
 	"github.com/tomogoma/go-typed-errors"
 	"github.com/tomogoma/seedms/pkg/config"
 )
@@ -20,7 +20,7 @@ type Roach struct {
 	errors.NotFoundErrCheck
 	dsn              string
 	dbName           string
-	db               *sql.DB
+	db               *gorm.DB
 	compatibilityErr error
 
 	isDBInitMutex sync.Mutex
@@ -29,6 +29,7 @@ type Roach struct {
 
 const (
 	keyDBVersion = "db.version"
+	driverName   = "postgres"
 )
 
 // NewRoach creates an instance of *Roach. A db connection is only established
@@ -48,21 +49,26 @@ func NewRoach(opts ...Option) *Roach {
 // InitDBIfNot connects to and sets up the DB; creating it and tables if necessary.
 func (r *Roach) InitDBIfNot() error {
 	var err error
-	r.db, err = crdbH.TryConnect(r.dsn, r.db)
+	r.db, err = r.TryConnect()
 	if err != nil {
 		return errors.Newf("connect to db: %v", err)
 	}
 	return r.instantiate()
 }
 
+func (r *Roach) TryConnect() (*gorm.DB, error) {
+	db, err := gorm.Open(driverName, r.dsn)
+	return db, err
+}
+
 // ExecuteTx prepares a transaction (with retries) for execution in fn.
 // It commits the changes if fn returns nil, otherwise changes are rolled back.
-func (r *Roach) ExecuteTx(fn func(*sql.Tx) error) error {
-	if err := r.InitDBIfNot(); err != nil {
-		return err
-	}
-	return crdb.ExecuteTx(context.Background(), r.db, nil, fn)
-}
+//func (r *Roach) ExecuteTx(fn func(*sql.Tx) error) error {
+//	if err := r.InitDBIfNot(); err != nil {
+//		return err
+//	}
+//	return crdb.ExecuteTx(context.Background(), r.db, nil, fn)
+//}
 
 // ColDesc returns a string containing cols in the given order separated by ",".
 func ColDesc(cols ...string) string {
@@ -76,6 +82,11 @@ func ColDesc(cols ...string) string {
 	return strings.TrimSuffix(desc, ", ")
 }
 
+func (r *Roach) InstantiateDB(db *gorm.DB, dnName string) error {
+	db.AutoMigrate(&ApiKey{}, &Configuration{})
+	return nil
+}
+
 func (r *Roach) instantiate() error {
 	r.isDBInitMutex.Lock()
 	defer r.isDBInitMutex.Unlock()
@@ -85,7 +96,7 @@ func (r *Roach) instantiate() error {
 	if r.isDBInit {
 		return nil
 	}
-	if err := crdbH.InstantiateDB(r.db, r.dbName, AllTableDescs...); err != nil {
+	if err := r.InstantiateDB(r.db, r.dbName); err != nil {
 		return errors.Newf("instantiating db: %v", err)
 	}
 	if runningVersion, err := r.validateRunningVersion(); err != nil {
@@ -108,15 +119,14 @@ func (r *Roach) instantiate() error {
 
 func (r *Roach) validateRunningVersion() (int, error) {
 	var runningVersion int
-	q := `SELECT ` + ColValue + ` FROM ` + TblConfigurations + ` WHERE ` + ColKey + `=$1`
-	var confB []byte
-	if err := r.db.QueryRow(q, keyDBVersion).Scan(&confB); err != nil {
-		if err == sql.ErrNoRows {
+	var confB Configuration
+	if err := r.db.Where(ColKey+" = ?", keyDBVersion).First(&confB); err.Error != nil {
+		if err.RecordNotFound() {
 			return -1, errors.NewNotFoundf("config not found")
 		}
-		return -1, errors.Newf("get conf: %v", err)
+		return -1, errors.Newf("get conf: %v", err.Error)
 	}
-	if err := json.Unmarshal(confB, &runningVersion); err != nil {
+	if err := json.Unmarshal([]byte(confB.Value), &runningVersion); err != nil {
 		return -1, errors.Newf("Unmarshalling config: %v", err)
 	}
 	if runningVersion != Version {
@@ -128,20 +138,10 @@ func (r *Roach) validateRunningVersion() (int, error) {
 }
 
 func (r *Roach) setRunningVersionCurrent() error {
-	valB, err := json.Marshal(Version)
-	if err != nil {
-		return errors.Newf("marshal conf: %v", err)
-	}
-	cols := ColDesc(ColKey, ColValue, ColUpdateDate)
-	updCols := ColDesc(ColValue, ColUpdateDate)
-	q := `
-		INSERT INTO ` + TblConfigurations + ` (` + cols + `)
-			VALUES ($1, $2, CURRENT_TIMESTAMP)
-			ON CONFLICT (` + ColKey + `)
-			DO UPDATE SET (` + updCols + `) = ($2, CURRENT_TIMESTAMP)`
-	res, err := r.db.Exec(q, keyDBVersion, valB)
-	if err := checkRowsAffected(res, err, 1); err != nil {
-		return err
+	var dbVerConf Configuration
+	r.db.Where(Configuration{Key: keyDBVersion}).Assign(Configuration{Value: strconv.Itoa(Version), UpdatedAt: time.Now()}).FirstOrCreate(&dbVerConf)
+	if dbVerConf.Value == "" {
+		return errors.Newf("unable to update db version")
 	}
 	r.compatibilityErr = nil
 	return nil

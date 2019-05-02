@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/handlers"
@@ -79,23 +80,24 @@ func (s handler) handleRoute(r *mux.Router) {
  *
  */
 func (s *handler) handleStatus(r *mux.Router) {
+	fmt.Println("Checking status")
 	r.Methods(http.MethodGet).
 		PathPrefix("/status").
 		HandlerFunc(
-		s.apiGuardChain(func(w http.ResponseWriter, r *http.Request) {
-			s.respondJsonOn(w, r, nil, struct {
-				Name          string `json:"name"`
-				Version       string `json:"version"`
-				Description   string `json:"description"`
-				CanonicalName string `json:"canonicalName"`
-			}{
-				Name:          config.Name,
-				Version:       config.VersionFull,
-				Description:   config.Description,
-				CanonicalName: config.CanonicalWebName(),
-			}, http.StatusOK, nil, s)
-		}),
-	)
+			s.apiGuardChain(func(w http.ResponseWriter, r *http.Request) {
+				s.respondJsonOn(w, r, nil, struct {
+					Name          string `json:"name"`
+					Version       string `json:"version"`
+					Description   string `json:"description"`
+					CanonicalName string `json:"canonicalName"`
+				}{
+					Name:          config.Name,
+					Version:       config.VersionFull,
+					Description:   config.Description,
+					CanonicalName: config.CanonicalWebName(),
+				}, http.StatusOK, nil, s)
+			}),
+		)
 }
 
 /**

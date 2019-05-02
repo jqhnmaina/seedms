@@ -46,17 +46,17 @@ func NewGorm(opts ...Option) *Gorm {
 }
 
 // InitDBIfNot connects to and sets up the DB; creating it and tables if necessary.
-func (gorm *Gorm) InitDBIfNot() error {
+func (g *Gorm) InitDBIfNot() error {
 	var err error
-	gorm.db, err = gorm.TryConnect()
+	g.db, err = g.TryConnect()
 	if err != nil {
 		return errors.Newf("connect to db: %v", err)
 	}
-	return gorm.instantiate()
+	return g.instantiate()
 }
 
-func (gorm *Gorm) TryConnect() (*gorm.DB, error) {
-	db, err := gorm.Open(driverName, gorm.dsn)
+func (g *Gorm) TryConnect() (*gorm.DB, error) {
+	db, err := gorm.Open(driverName, g.dsn)
 	return db, err
 }
 
@@ -81,45 +81,45 @@ func ColDesc(cols ...string) string {
 	return strings.TrimSuffix(desc, ", ")
 }
 
-func (gorm *Gorm) InstantiateDB(db *gorm.DB, dnName string) error {
-	db.AutoMigrate(&ApiKey{}, &Configuration{})
-	return nil
+func (g *Gorm) InstantiateDB(db *gorm.DB, dnName string) error {
+	err := db.AutoMigrate(AllTablesDesc...)
+	return err.Error
 }
 
-func (gorm *Gorm) instantiate() error {
-	gorm.isDBInitMutex.Lock()
-	defer gorm.isDBInitMutex.Unlock()
-	if gorm.compatibilityErr != nil {
-		return gorm.compatibilityErr
+func (g *Gorm) instantiate() error {
+	g.isDBInitMutex.Lock()
+	defer g.isDBInitMutex.Unlock()
+	if g.compatibilityErr != nil {
+		return g.compatibilityErr
 	}
-	if gorm.isDBInit {
+	if g.isDBInit {
 		return nil
 	}
-	if err := gorm.InstantiateDB(gorm.db, gorm.dbName); err != nil {
+	if err := g.InstantiateDB(g.db, g.dbName); err != nil {
 		return errors.Newf("instantiating db: %v", err)
 	}
-	if runningVersion, err := gorm.validateRunningVersion(); err != nil {
-		if !gorm.IsNotFoundError(err) {
-			if err != gorm.compatibilityErr {
+	if runningVersion, err := g.validateRunningVersion(); err != nil {
+		if !g.IsNotFoundError(err) {
+			if err != g.compatibilityErr {
 				return fmt.Errorf("check db version: %v", err)
 			}
-			if err := gorm.migrate(runningVersion, Version); err != nil {
+			if err := g.migrate(runningVersion, Version); err != nil {
 				return fmt.Errorf("migrate from version %d to %d: %v",
 					runningVersion, Version, err)
 			}
 		}
-		if err := gorm.setRunningVersionCurrent(); err != nil {
+		if err := g.setRunningVersionCurrent(); err != nil {
 			return errors.Newf("set db version: %v", err)
 		}
 	}
-	gorm.isDBInit = true
+	g.isDBInit = true
 	return nil
 }
 
-func (gorm *Gorm) validateRunningVersion() (int, error) {
+func (g *Gorm) validateRunningVersion() (int, error) {
 	var runningVersion int
 	var confB Configuration
-	if err := gorm.db.Where(ColKey+" = ?", keyDBVersion).First(&confB); err.Error != nil {
+	if err := g.db.Where(ColKey+" = ?", keyDBVersion).First(&confB); err.Error != nil {
 		if err.RecordNotFound() {
 			return -1, errors.NewNotFoundf("config not found")
 		}
@@ -129,20 +129,20 @@ func (gorm *Gorm) validateRunningVersion() (int, error) {
 		return -1, errors.Newf("Unmarshalling config: %v", err)
 	}
 	if runningVersion != Version {
-		gorm.compatibilityErr = errors.Newf("db incompatible: need db"+
+		g.compatibilityErr = errors.Newf("db incompatible: need db"+
 			" version '%d', found '%d'", Version, runningVersion)
-		return runningVersion, gorm.compatibilityErr
+		return runningVersion, g.compatibilityErr
 	}
 	return runningVersion, nil
 }
 
-func (gorm *Gorm) setRunningVersionCurrent() error {
+func (g *Gorm) setRunningVersionCurrent() error {
 	var dbVerConf Configuration
-	gorm.db.Where(Configuration{Key: keyDBVersion}).Assign(Configuration{Value: strconv.Itoa(Version), UpdatedAt: time.Now()}).FirstOrCreate(&dbVerConf)
+	g.db.Where(Configuration{Key: keyDBVersion}).Assign(Configuration{Value: strconv.Itoa(Version), UpdatedAt: time.Now()}).FirstOrCreate(&dbVerConf)
 	if dbVerConf.Value == "" {
 		return errors.Newf("unable to update db version")
 	}
-	gorm.compatibilityErr = nil
+	g.compatibilityErr = nil
 	return nil
 }
 

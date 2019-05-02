@@ -11,8 +11,8 @@ import (
 )
 
 // InsertAPIKey inserts an API key for the userID.
-func (gorm *Gorm) InsertAPIKey(userID string, key []byte) (apiG.Key, error) {
-	if err := gorm.InitDBIfNot(); err != nil {
+func (g *Gorm) InsertAPIKey(userID string, key []byte) (apiG.Key, error) {
+	if err := g.InitDBIfNot(); err != nil {
 		return nil, err
 	}
 	k := api.Key{UserID: userID, Val: key}
@@ -22,7 +22,7 @@ func (gorm *Gorm) InsertAPIKey(userID string, key []byte) (apiG.Key, error) {
 	}
 
 	var apiKey ApiKey
-	gormErr := gorm.db.FirstOrCreate(&apiKey, ApiKey{UserId: intUserId, Key: string(key), UpdatedAt: time.Now()})
+	gormErr := g.db.FirstOrCreate(&apiKey, ApiKey{UserId: intUserId, Key: string(key), UpdatedAt: time.Now()})
 	if gormErr.Error != nil {
 		return nil, gormErr.Error
 	}
@@ -31,12 +31,12 @@ func (gorm *Gorm) InsertAPIKey(userID string, key []byte) (apiG.Key, error) {
 }
 
 // APIKeyByUserIDVal returns API keys for the provided userID/key combination.
-func (gorm *Gorm) APIKeyByUserIDVal(userID string, key []byte) (apiG.Key, error) {
-	if err := gorm.InitDBIfNot(); err != nil {
+func (g *Gorm) APIKeyByUserIDVal(userID string, key []byte) (apiG.Key, error) {
+	if err := g.InitDBIfNot(); err != nil {
 		return nil, err
 	}
 	var apiKey ApiKey
-	err := gorm.db.Where(ColUserID+" = ?", userID).Where(ColKey+" = ?", key).First(&apiKey)
+	err := g.db.Where(ColUserID+" = ?", userID).Where(ColKey+" = ?", key).First(&apiKey)
 	if err.Error != nil {
 		if err.RecordNotFound() {
 			return nil, errors.NewNotFound("API key not found")

@@ -5,20 +5,20 @@ import (
 	"fmt"
 )
 
-func (gorm *Gorm) migrate(fromVersion, toVersion int) error {
+func (g *Gorm) migrate(fromVersion, toVersion int) error {
 
 	var err error
-	gorm.db, err = gorm.TryConnect()
+	g.db, err = g.TryConnect()
 	if err != nil {
 		return fmt.Errorf("connect to db: %v", err)
 	}
 
-	// TODO supported migration logic here e.gorm.
+	// TODO supported migration logic here e.g.
 	//		if fromVersion == 0 && toVersion == 1 {
-	//			if err := gorm.migrate0To1(); err != nil { // implement gorm.migrate0To1()
+	//			if err := g.migrate0To1(); err != nil { // implement g.migrate0To1()
 	//				return err
 	//			}
-	//			return gorm.setRunningVersionCurrent()
+	//			return g.setRunningVersionCurrent()
 	//		}
 
 	return errors.New("not supported")

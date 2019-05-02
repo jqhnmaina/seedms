@@ -6,10 +6,6 @@ const (
 	// Database definition version
 	Version = 0
 
-	// Table names
-	TblConfigurations = "configurations"
-	TblAPIKeys        = "apiKeys"
-
 	// DB Table Columns
 	ColID         = "ID"
 	ColCreateDate = "createDate"
@@ -32,4 +28,9 @@ type Configuration struct {
 	Value     string    `json:"value"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+var AllTablesDesc = []interface{}{
+	&ApiKey{},
+	&Configuration{},
 }

@@ -6,10 +6,9 @@ import (
 
 	"github.com/micro/go-micro"
 	"github.com/micro/go-web"
+	"github.com/tomogoma/seedms/internal/bootstrap"
 	"github.com/tomogoma/seedms/pkg/api"
-	"github.com/tomogoma/seedms/pkg/bootstrap"
 	"github.com/tomogoma/seedms/pkg/config"
-	httpIntl "github.com/tomogoma/seedms/pkg/handler/http"
 	"github.com/tomogoma/seedms/pkg/handler/rpc"
 	"github.com/tomogoma/seedms/pkg/logging"
 	"github.com/tomogoma/seedms/pkg/logging/logrus"
@@ -29,8 +28,7 @@ func main() {
 	go serveRPC(deps.Config.Service, rpcSrv, serverRPCQuitCh)
 
 	serverHttpQuitCh := make(chan error)
-	httpHandler, err := httpIntl.NewHandler(deps.Guard, log, config.WebRootPath(),
-		deps.Config.Service.DocsDir, deps.Config.Service.AllowedOrigins)
+	httpHandler := bootstrap.NewHttpHandler(log, deps)
 	logging.LogFatalOnError(log, err, "Instantiate HTTP handler")
 	go serveHttp(deps.Config.Service, httpHandler, serverHttpQuitCh)
 

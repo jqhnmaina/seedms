@@ -21,28 +21,6 @@ type Deps struct {
 	JWTEr  *jwt.Handler
 }
 
-func NewStatusSubRoute() httpApi.SubRoute {
-	sh := status.NewHandler()
-	return httpApi.SubRoute{Path: "/status", Handler: sh}
-}
-
-func NewHttpHandler(lg logging.Logger, deps Deps) http.Handler {
-	JWTKey, err := ioutil.ReadFile(deps.Config.Service.AuthTokenKeyFile)
-	logging.LogFatalOnError(lg, err, "Read JWT key file")
-	jwtHandler, err := jwt.NewHandler(JWTKey)
-
-	logging.LogFatalOnError(lg, err, "Instantiate JWT handler")
-	jwtHelper, err := jwtH.NewHelper(jwtHandler)
-	logging.LogFatalOnError(lg, err, "Instantiate JWT helper")
-
-	h, err := httpApi.NewHandler(config.WebRootPath(), lg, jwtHelper, deps.Config.Service.AllowedOrigins,
-		NewStatusSubRoute(),
-	)
-	logging.LogFatalOnError(lg, err, "Instantiate http API handler")
-
-	return h
-}
-
 func Instantiate(confFile string, lg logging.Logger) Deps {
 
 	conf, err := config.ReadFile(confFile)
@@ -77,4 +55,26 @@ func InstantiateJWTHandler(lg logging.Logger, tknKyF string) *jwt.Handler {
 	jwter, err := jwt.NewHandler(JWTKey)
 	logging.LogFatalOnError(lg, err, "Instantiate JWT handler")
 	return jwter
+}
+
+func NewStatusSubRoute() httpApi.SubRoute {
+	sh := status.NewHandler()
+	return httpApi.SubRoute{Path: "/status", Handler: sh}
+}
+
+func NewHttpHandler(lg logging.Logger, deps Deps) http.Handler {
+	JWTKey, err := ioutil.ReadFile(deps.Config.Service.AuthTokenKeyFile)
+	logging.LogFatalOnError(lg, err, "Read JWT key file")
+	jwtHandler, err := jwt.NewHandler(JWTKey)
+
+	logging.LogFatalOnError(lg, err, "Instantiate JWT handler")
+	jwtHelper, err := jwtH.NewHelper(jwtHandler)
+	logging.LogFatalOnError(lg, err, "Instantiate JWT helper")
+
+	h, err := httpApi.NewHandler(config.WebRootPath(), lg, jwtHelper, deps.Config.Service.AllowedOrigins,
+		NewStatusSubRoute(),
+	)
+	logging.LogFatalOnError(lg, err, "Instantiate http API handler")
+
+	return h
 }

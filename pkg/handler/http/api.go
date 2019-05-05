@@ -17,16 +17,22 @@ import (
 	"strings"
 )
 
+type Guard interface {
+	APIKeyValid(key []byte) (string, error)
+}
+
 type API struct {
 	errors.ErrToHTTP
 
+	guard     Guard
 	Logger    logging.Logger
 	jwtHelper JWTHelper
+	docsDir   string
 }
 
 var ToHttpResponser errors.ErrToHTTP
 
-func NewHandler(baseURL string, lg logging.Logger, jwtH JWTHelper, allowedOrigins []string, subRs ...SubRoute) (http.Handler, error) {
+func NewHandler(g Guard, baseURL string, lg logging.Logger, jwtH JWTHelper, docsDir string, allowedOrigins []string, subRs ...SubRoute) (http.Handler, error) {
 
 	if lg == nil {
 		return nil, errors.New("nil Logger")
@@ -39,7 +45,7 @@ func NewHandler(baseURL string, lg logging.Logger, jwtH JWTHelper, allowedOrigin
 		PathPrefix(baseURL).
 		Subrouter()
 
-	h := &API{Logger: lg, jwtHelper: jwtH}
+	h := &API{Logger: lg, guard: g, docsDir: docsDir, jwtHelper: jwtH}
 
 	for _, subR := range subRs {
 		r := r.PathPrefix(subR.Path).

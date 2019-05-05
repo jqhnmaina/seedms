@@ -71,7 +71,7 @@ func NewHttpHandler(lg logging.Logger, deps Deps) http.Handler {
 	jwtHelper, err := jwtH.NewHelper(jwtHandler)
 	logging.LogFatalOnError(lg, err, "Instantiate JWT helper")
 
-	h, err := httpApi.NewHandler(config.WebRootPath(), lg, jwtHelper, deps.Config.Service.AllowedOrigins,
+	h, err := httpApi.NewHandler(deps.Guard, config.WebRootPath(), lg, jwtHelper, deps.Config.Service.DocsDir, deps.Config.Service.AllowedOrigins,
 		NewStatusSubRoute(),
 	)
 	logging.LogFatalOnError(lg, err, "Instantiate http API handler")

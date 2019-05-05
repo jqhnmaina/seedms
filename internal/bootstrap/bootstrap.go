@@ -65,9 +65,10 @@ func NewStatusSubRoute() httpApi.SubRoute {
 func NewHttpHandler(lg logging.Logger, deps Deps) http.Handler {
 	JWTKey, err := ioutil.ReadFile(deps.Config.Service.AuthTokenKeyFile)
 	logging.LogFatalOnError(lg, err, "Read JWT key file")
-	jwtHandler, err := jwt.NewHandler(JWTKey)
 
+	jwtHandler, err := jwt.NewHandler(JWTKey)
 	logging.LogFatalOnError(lg, err, "Instantiate JWT handler")
+
 	jwtHelper, err := jwtH.NewHelper(jwtHandler)
 	logging.LogFatalOnError(lg, err, "Instantiate JWT helper")
 

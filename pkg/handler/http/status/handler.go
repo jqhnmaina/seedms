@@ -23,7 +23,7 @@ func (h *Handler) HandleRoute(api *httpAPI.API, r *mux.Router) {
 func (h *Handler) handleIndex(api *httpAPI.API, r *mux.Router) {
 	r.Methods(http.MethodGet).
 		HandlerFunc(
-			api.RouteChain(func(w http.ResponseWriter, r *http.Request) {
+			api.RouteChainWithAPIKey(func(w http.ResponseWriter, r *http.Request) {
 				httpAPI.RespondJsonOn(w, r, nil, struct {
 					Name          string `json:"name"`
 					Version       string `json:"version"`

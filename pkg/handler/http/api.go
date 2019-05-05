@@ -75,6 +75,26 @@ func (a *API) RouteChainWIthJWTGuard(next http.HandlerFunc) http.HandlerFunc {
 	return a.PrepLogger(a.GuardJWT(next))
 }
 
+func (a *API) RouteChainWithAPIKey(next http.HandlerFunc) http.HandlerFunc {
+	return a.PrepLogger(a.GuardAPIKey(next))
+}
+
+func (a *API) GuardAPIKey(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		APIKey := r.Header.Get(keyAPIKey)
+		clUsrID, err := a.guard.APIKeyValid([]byte(APIKey))
+		log := r.Context().Value(ctxKeyLog).(logging.Logger).
+			WithField(logging.FieldClientAppUserID, clUsrID)
+		ctx := context.WithValue(r.Context(), ctxKeyLog, log)
+		if err != nil {
+			HandleError(w, r.WithContext(ctx), nil, err, a)
+			return
+		}
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	}
+}
+
 func (a *API) PrepLogger(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 

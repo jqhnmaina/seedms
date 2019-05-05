@@ -1,8 +1,8 @@
 package http
 
 import (
-	"bitbucket.org/rfhkenya/qms-server/pkg/jwt"
 	"github.com/tomogoma/go-typed-errors"
+	"github.com/tomogoma/seedms/pkg/jwt"
 )
 
 type JWTHelper interface {

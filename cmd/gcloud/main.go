@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/tomogoma/seedms/pkg/bootstrap"
+	"github.com/tomogoma/seedms/internal/bootstrap"
 	"github.com/tomogoma/seedms/pkg/config"
 	httpInternal "github.com/tomogoma/seedms/pkg/handler/http"
 	"github.com/tomogoma/seedms/pkg/logging"
